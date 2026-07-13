@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Fondo del adaptive icon.
+         Debe ser blanco para evitar esquinas negras o fondo rojo. -->
+    <color name="ic_launcher_background">#FFFFFFFF</color>
+</resources>

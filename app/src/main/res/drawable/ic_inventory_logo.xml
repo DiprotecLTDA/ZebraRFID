@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Círculo exterior blanco -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54 m-39,0 a39,39 0,1 0,78 0 a39,39 0,1 0,-78 0" />
+
+    <!-- Círculo rojo interior -->
+    <path
+        android:fillColor="#EF334D"
+        android:pathData="M54,54 m-32,0 a32,32 0,1 0,64 0 a32,32 0,1 0,-64 0" />
+
+    <!-- Caja superior -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M43,25 L65,25 L65,48 L43,48 Z" />
+
+    <!-- Línea roja caja superior -->
+    <path
+        android:fillColor="#EF334D"
+        android:pathData="M49,34 L60,34 L60,37 L49,37 Z" />
+
+    <!-- Caja inferior izquierda -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,49 L51,49 L51,72 L30,72 Z" />
+
+    <!-- Línea roja caja inferior izquierda -->
+    <path
+        android:fillColor="#EF334D"
+        android:pathData="M36,59 L47,59 L47,62 L36,62 Z" />
+
+    <!-- Caja inferior derecha -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M57,49 L78,49 L78,72 L57,72 Z" />
+
+    <!-- Línea roja caja inferior derecha -->
+    <path
+        android:fillColor="#EF334D"
+        android:pathData="M63,59 L74,59 L74,62 L63,62 Z" />
+
+</vector>

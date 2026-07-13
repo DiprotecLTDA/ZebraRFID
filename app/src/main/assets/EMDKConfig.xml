@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wap-provisioningdoc>
+    <characteristic type="ProfileInfo">
+        <parm name="created_wizard_version" value="15.0.0"/>
+    </characteristic>
+
+    <characteristic type="Profile">
+        <parm name="ProfileName" value="ProfileInventario"/>
+
+        <characteristic type="AccessMgr" version="10.1">
+            <parm name="emdk_name" value="BuscarSerial"/>
+            <parm name="OperationMode" value="1"/>
+            <parm name="ServiceAccessAction" value="4"/>
+            <parm name="ServiceIdentifier" value="content://oem_info/oem.zebra.secure/build_serial"/>
+            <parm name="CallerPackageName" value="com.diprotec.inventariozebratc27"/>
+            <parm name="CallerSignature" value="MIIDUDCCAjgCAQEwDQYJKoZIhvcNAQELBQAwbTEYMBYGA1UEAwwPV2lsc29uIEFyw6h2YWxvMQswCQYDVQQLDAJJVDERMA8GA1UECgwIRGlwcm90ZWMxETAPBgNVBAcMCFNhbnRpYWdvMREwDwYDVQQIDAhTYW50aWFnbzELMAkGA1UEBhMCQ0wwIBcNMjYwNjEwMTk1MTQ3WhgPMjA1MTA2MDQxOTUxNDdaMG0xGDAWBgNVBAMMD1dpbHNvbiBBcsOodmFsbzELMAkGA1UECwwCSVQxETAPBgNVBAoMCERpcHJvdGVjMREwDwYDVQQHDAhTYW50aWFnbzERMA8GA1UECAwIU2FudGlhZ28xCzAJBgNVBAYTAkNMMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyPf2Hs6EyA4m4/UvQu6FovIG5b/D0lL/8XlH2cebJGIEN8gYy1hlpzifssRTCZnxtnTRKK60NCsJtDCzpQSTs2qzgRbqKZfN8i99UDm8DsHaa85nX/5sRE22KUWxNGSaNgcoDkewNJ4TWwSs9AVCz4HzCbszxJyBZVg5lOP5448EZQCvkYBc3mYFzezr7h8uWOZlzPlnjL2kFoxABjmXi3ajTs0bRtb0A20W7F4X/mLomaJHRB+pqY0/ZdvXC5m7IxkpIzYMawmVQgN6dGuMnxNPmZbq9Sm+M2h8k0o1uomFkBubAvN+P0dTQxjULP5T1Y35/6CmOoOSH/VPphDtFwIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQACAybtUJU3v8uG0l21AdhQKZGRxuC6SMq89TiW5/ZQUU3z3Bpdz+j5ao2LUDgMxV8zgQj0N0rL7lXDwBehQAXWu5vaX7TUxBlZN5nJybzp/pvC5zf/obho5Kjjj7FZdjsBxJyj/7jID/2IP0nMRStEXGC8eW7VCGqhNSPWzCpqb2NOiE1xEjdz/MsaHO2ko4ANuXd+qd/acxpvxgZHR+BfyCru49B/74e9mt4rx0kL9XPodv0/yzSIRcBeb0QCmjvfmt4ZybLb6lA/I38E3hWh6ShEjBvdIXAETa3xzxkMBoiAJv/thfVUOVA2LY2WDsbaF9/ocmAiKCgwl2wLpWeV"/>
+        </characteristic>
+    </characteristic>
+</wap-provisioningdoc>
