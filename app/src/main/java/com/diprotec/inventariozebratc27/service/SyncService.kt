@@ -221,7 +221,7 @@ class SyncService(
 
         Log.d(
             TAG,
-            "$name sincronizados: ${mapped.size}"
+            "Sincronizado $name: ${mapped.size}"
         )
 
         mapped.size

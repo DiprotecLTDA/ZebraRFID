@@ -32,7 +32,9 @@ Arquitectura por capas dentro de `app/src/main/java/com/diprotec/inventariozebra
 
 ## Módulo RFID
 
-`ZebraRfidManager` configura el lector al conectarse aplicando un perfil de lectura de alto rendimiento (potencia RF máxima soportada, sesión de singulación **S0**, DPO desactivado y reporte continuo de etiquetas). La deduplicación de lecturas se realiza a nivel de aplicación por clave GS1 (`InventoryRepository.registerRfidInventoryItem`).
+`ZebraRfidManager` configura el lector al conectarse aplicando un perfil de lectura de alto rendimiento (potencia RF máxima soportada, sesión de singulación **S0**, DPO desactivado y reporte continuo de etiquetas). En modo **localización** (búsqueda de una etiqueta concreta) usa potencia RF **moderada** —índice medio ajustable con `LOCATIONING_POWER_DIVISOR`— para que el porcentaje de proximidad varíe de forma gradual al acercarse y no se sature.
+
+La deduplicación de lecturas se realiza en dos niveles: persistente por clave GS1 en `InventoryRepository.registerRfidInventoryItem`, y en memoria por sesión (`seenEpcs` en `InventoryRfidViewModel`) para descartar las relecturas continuas de una misma etiqueta sin golpear la base de datos.
 
 ## Compilación
 

@@ -7,6 +7,27 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+### Corregido (2026-07-13)
+- **Detector de proximidad RFID (localización):** el porcentaje de distancia no aumentaba
+  al acercarse a la etiqueta porque la localización corría a potencia RF máxima y saturaba
+  la señal. Ahora `applyReadConfiguration(forLocationing)` aplica potencia **moderada**
+  (índice medio, ajustable con la constante `LOCATIONING_POWER_DIVISOR`) en modo
+  localización y mantiene la potencia máxima en inventario; conserva sesión **S0** y DPO
+  desactivado en ambos.
+
+### Rendimiento (2026-07-13)
+- **Deduplicación en memoria de lecturas RFID:** `InventoryRfidViewModel` mantiene un caché
+  `seenEpcs` por sesión que descarta las relecturas continuas de una misma etiqueta **sin
+  consultar la base de datos** y sin inflar el contador de duplicados. Elimina el martilleo
+  de Room y el mensaje repetido *"Etiqueta duplicada ignorada"* que apareció al habilitar el
+  reporte continuo. El caché se limpia al cargar, detener, finalizar y salir del inventario.
+- **Frescura de la distancia en localización:** `_locateResults` usa buffer de 256 con
+  `DROP_OLDEST` y `tryEmit`.
+
+### Cambiado (2026-07-13)
+- Textos de log corregidos: `UniqueTagReport` ahora se registra como *"desactivado"*; el log
+  genérico de sincronización usa redacción neutra (*"Sincronizado &lt;entidad&gt;: N"*).
+
 ### Corregido
 - **Lecturas RFID incompletas:** el lector marcaba etiquetas (sonaba) pero la app no
   registraba todas. Causa: nunca se configuraban los parámetros de RF del lector. Ahora

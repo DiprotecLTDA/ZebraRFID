@@ -15,16 +15,13 @@ import com.zebra.rfid.api3.SESSION
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Singleton
@@ -35,6 +32,7 @@ class ZebraRfidManager @Inject constructor(
     companion object {
         private const val TAG = "ZebraRfidManager"
         private const val TAG_POPULATION = 30
+        private const val LOCATIONING_POWER_DIVISOR = 2
         private const val READ_TAGS_BATCH_SIZE = 100
         private const val VERIFY_STEP_DELAY_MS = 200L
         private const val RECONNECT_DELAY_MS = 500L
@@ -43,8 +41,6 @@ class ZebraRfidManager @Inject constructor(
         private const val START_INVENTORY_CLEANUP_DELAY_MS = 150L
         private const val INVENTORY_START_DELAY_MS = 100L
     }
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var readers: Readers? = null
     private var reader: RFIDReader? = null
@@ -68,7 +64,8 @@ class ZebraRfidManager @Inject constructor(
 
     private val _locateResults =
         MutableSharedFlow<RfidLocateResult>(
-            extraBufferCapacity = 100
+            extraBufferCapacity = 256,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
 
     val locateResults: SharedFlow<RfidLocateResult> =
@@ -129,14 +126,12 @@ class ZebraRfidManager @Inject constructor(
 
                                 val safeDistance = distance.coerceIn(0, 100)
 
-                                scope.launch {
-                                    _locateResults.emit(
-                                        RfidLocateResult(
-                                            epc = resolvedEpc,
-                                            relativeDistance = safeDistance
-                                        )
+                                _locateResults.tryEmit(
+                                    RfidLocateResult(
+                                        epc = resolvedEpc,
+                                        relativeDistance = safeDistance
                                     )
-                                }
+                                )
                             }
 
                             return@forEach
@@ -271,21 +266,21 @@ class ZebraRfidManager @Inject constructor(
         currentReader.Events.setTagReadEvent(true)
         currentReader.Events.setAttachTagDataWithReadEvent(true)
 
-        applyReadConfiguration()
+        applyReadConfiguration(forLocationing = forLocationing)
 
         runCatching {
             currentReader.Config.setUniqueTagReport(false)
         }.onSuccess {
             if (forLocationing) {
-                Log.d(TAG, "UniqueTagReport activado para localización")
+                Log.d(TAG, "UniqueTagReport desactivado para localización")
             } else {
-                Log.d(TAG, "UniqueTagReport activado")
+                Log.d(TAG, "UniqueTagReport desactivado")
             }
         }.onFailure {
             if (forLocationing) {
-                Log.w(TAG, "No se pudo activar UniqueTagReport para localización", it)
+                Log.w(TAG, "No se pudo desactivar UniqueTagReport para localización", it)
             } else {
-                Log.w(TAG, "No se pudo activar UniqueTagReport", it)
+                Log.w(TAG, "No se pudo desactivar UniqueTagReport", it)
             }
         }
 
@@ -296,7 +291,7 @@ class ZebraRfidManager @Inject constructor(
         }
     }
 
-    private fun applyReadConfiguration() {
+    private fun applyReadConfiguration(forLocationing: Boolean = false) {
         val currentReader = reader ?: return
 
         if (!currentReader.isConnected) return
@@ -309,17 +304,29 @@ class ZebraRfidManager @Inject constructor(
                 "El lector no reportó niveles de potencia RF"
             }
 
-            val maxPowerIndex = powerLevels.lastIndex
+            val transmitPowerIndex = if (forLocationing) {
+                powerLevels.size / LOCATIONING_POWER_DIVISOR
+            } else {
+                powerLevels.lastIndex
+            }
             val antennaConfig = currentReader.Config.Antennas
                 .getAntennaRfConfig(1)
 
-            antennaConfig.setTransmitPowerIndex(maxPowerIndex)
+            antennaConfig.setTransmitPowerIndex(transmitPowerIndex)
             currentReader.Config.Antennas
                 .setAntennaRfConfig(1, antennaConfig)
         }.onSuccess {
-            Log.d(TAG, "Potencia RF configurada al máximo soportado")
+            if (forLocationing) {
+                Log.d(TAG, "Potencia RF moderada configurada para localización")
+            } else {
+                Log.d(TAG, "Potencia RF configurada al máximo soportado")
+            }
         }.onFailure {
-            Log.w(TAG, "No se pudo configurar la potencia RF máxima", it)
+            if (forLocationing) {
+                Log.w(TAG, "No se pudo configurar la potencia RF para localización", it)
+            } else {
+                Log.w(TAG, "No se pudo configurar la potencia RF máxima", it)
+            }
         }
 
         runCatching {

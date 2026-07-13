@@ -76,6 +76,7 @@ class InventoryRfidViewModel @Inject constructor(
     val uiState: StateFlow<InventoryRfidUiState> = _uiState.asStateFlow()
 
     private val epcMutex = Mutex()
+    private val seenEpcs = mutableSetOf<String>()
 
     private var loadJob: Job? = null
     private var tagsJob: Job? = null
@@ -96,6 +97,8 @@ class InventoryRfidViewModel @Inject constructor(
         loadJob?.cancel()
 
         loadJob = viewModelScope.launch {
+            clearSeenEpcs()
+
             val inventory = withContext(Dispatchers.IO) {
                 repository.getInventoryById(inventoryId)
             }
@@ -269,7 +272,14 @@ class InventoryRfidViewModel @Inject constructor(
     fun stopReading() {
         val current = _uiState.value
 
-        if (current.stoppingReading || !current.isReading) return
+        if (current.stoppingReading) return
+
+        if (!current.isReading) {
+            viewModelScope.launch {
+                clearSeenEpcs()
+            }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -286,6 +296,8 @@ class InventoryRfidViewModel @Inject constructor(
                 isReading = false,
                 errorMessage = null
             )
+
+            clearSeenEpcs()
         }
     }
 
@@ -305,6 +317,8 @@ class InventoryRfidViewModel @Inject constructor(
                 isReading = false
             )
 
+            clearSeenEpcs()
+
             onLeavePending()
         }
     }
@@ -314,7 +328,7 @@ class InventoryRfidViewModel @Inject constructor(
         onFinished: () -> Unit
     ) {
         viewModelScope.launch {
-            runCatching {
+            val result = runCatching {
                 withContext(Dispatchers.IO) {
                     if (_uiState.value.isReading) {
                         rfidManager.stopInventory()
@@ -327,13 +341,17 @@ class InventoryRfidViewModel @Inject constructor(
                     isReading = false,
                     errorMessage = null
                 )
-
-                onFinished()
             }.onFailure { error ->
                 _uiState.value = _uiState.value.copy(
                     isReading = false,
                     errorMessage = error.message ?: "No se pudo finalizar el inventario"
                 )
+            }
+
+            clearSeenEpcs()
+
+            result.onSuccess {
+                onFinished()
             }
         }
     }
@@ -366,11 +384,17 @@ class InventoryRfidViewModel @Inject constructor(
     }
 
     private suspend fun registerEpcAsCapture(epc: String) {
-        val rawEpc = epc.trim()
+        val rawEpc = epc
+            .trim()
+            .uppercase()
 
         if (rawEpc.isBlank()) return
 
         epcMutex.withLock {
+            if (seenEpcs.contains(rawEpc)) {
+                return@withLock
+            }
+
             val current = _uiState.value
 
             val validationError = validateBeforeReading(current)
@@ -407,6 +431,8 @@ class InventoryRfidViewModel @Inject constructor(
             }
 
             result.onSuccess { saved ->
+                seenEpcs.add(rawEpc)
+
                 val latest = _uiState.value
 
                 if (saved.isDuplicate) {
@@ -435,6 +461,12 @@ class InventoryRfidViewModel @Inject constructor(
                     errorMessage = error.message ?: "No se pudo registrar la lectura RFID"
                 )
             }
+        }
+    }
+
+    private suspend fun clearSeenEpcs() {
+        epcMutex.withLock {
+            seenEpcs.clear()
         }
     }
 
