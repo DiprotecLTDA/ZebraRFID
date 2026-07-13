@@ -20,3 +20,12 @@ val TextSecondary = Color(0xFFC0392B)
 
 val Success = Color(0xFF2E7D32)
 val ErrorRed = Color(0xFFC0392B)
+
+val StatusOnline = Success
+val StatusWarning = Color(0xFFF9A825)
+val StatusError = Color(0xFFC62828)
+
+val SuccessBg = Color(0xFFEFFFFC)
+val SuccessBorder = Color(0xFFBDEBE5)
+val InventoryButtonBackground = Color(0xFFFFF1F0)
+val OverlayScrim = Color(0x61000000)

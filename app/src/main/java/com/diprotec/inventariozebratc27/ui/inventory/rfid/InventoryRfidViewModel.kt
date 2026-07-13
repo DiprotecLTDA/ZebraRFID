@@ -12,13 +12,17 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -72,14 +76,21 @@ class InventoryRfidViewModel @Inject constructor(
     private val rfidManager: ZebraRfidManager
 ) : ViewModel() {
 
+    private companion object {
+        const val FLUSH_INTERVAL_MS = 150L
+        const val MAX_BATCH_SIZE = 500
+    }
+
     private val _uiState = MutableStateFlow(InventoryRfidUiState())
     val uiState: StateFlow<InventoryRfidUiState> = _uiState.asStateFlow()
 
     private val epcMutex = Mutex()
     private val seenEpcs = mutableSetOf<String>()
+    private val pendingEpcs = mutableListOf<String>()
 
     private var loadJob: Job? = null
     private var tagsJob: Job? = null
+    private var flusherJob: Job? = null
 
     init {
         observeRfidState()
@@ -97,6 +108,7 @@ class InventoryRfidViewModel @Inject constructor(
         loadJob?.cancel()
 
         loadJob = viewModelScope.launch {
+            stopFlusherAndFlushPending()
             clearSeenEpcs()
 
             val inventory = withContext(Dispatchers.IO) {
@@ -254,6 +266,8 @@ class InventoryRfidViewModel @Inject constructor(
             }
 
             _uiState.value = if (started) {
+                startFlusher()
+
                 _uiState.value.copy(
                     startingReading = false,
                     isReading = true,
@@ -276,6 +290,7 @@ class InventoryRfidViewModel @Inject constructor(
 
         if (!current.isReading) {
             viewModelScope.launch {
+                stopFlusherAndFlushPending()
                 clearSeenEpcs()
             }
             return
@@ -297,6 +312,7 @@ class InventoryRfidViewModel @Inject constructor(
                 errorMessage = null
             )
 
+            stopFlusherAndFlushPending()
             clearSeenEpcs()
         }
     }
@@ -317,6 +333,7 @@ class InventoryRfidViewModel @Inject constructor(
                 isReading = false
             )
 
+            stopFlusherAndFlushPending()
             clearSeenEpcs()
 
             onLeavePending()
@@ -333,7 +350,15 @@ class InventoryRfidViewModel @Inject constructor(
                     if (_uiState.value.isReading) {
                         rfidManager.stopInventory()
                     }
+                }
 
+                _uiState.value = _uiState.value.copy(
+                    isReading = false
+                )
+
+                stopFlusherAndFlushPending()
+
+                withContext(Dispatchers.IO) {
                     repository.finalizeInventory(inventoryId)
                 }
             }.onSuccess {
@@ -415,53 +440,100 @@ class InventoryRfidViewModel @Inject constructor(
                 return@withLock
             }
 
-            val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    repository.registerRfidInventoryItem(
-                        inventoryId = current.inventoryId,
-                        ubicacionId = current.selectedUbicacionId,
-                        ubicacionNombre = current.selectedUbicacionName,
-                        epc = rawEpc,
-                        quantity = 1.0,
-                        unitMeasure = current.selectedUnitName,
-                        unitMeasureId = current.selectedUnitId,
-                        rutUsuario = rutUsuario
-                    )
-                }
+            seenEpcs.add(rawEpc)
+            pendingEpcs.add(rawEpc)
+        }
+    }
+
+    private fun startFlusher() {
+        flusherJob?.cancel()
+
+        flusherJob = viewModelScope.launch {
+            while (isActive) {
+                delay(FLUSH_INTERVAL_MS)
+                flushPending()
             }
+        }
+    }
 
-            result.onSuccess { saved ->
-                seenEpcs.add(rawEpc)
+    private suspend fun stopFlusherAndFlushPending() {
+        flusherJob?.cancelAndJoin()
+        flusherJob = null
 
-                val latest = _uiState.value
+        while (flushPending()) {
+            // Vacía todos los lotes pendientes antes de limpiar la sesión.
+        }
+    }
 
-                if (saved.isDuplicate) {
-                    _uiState.value = latest.copy(
-                        lastEpc = saved.epcNormalized.ifBlank { saved.epcRaw },
-                        lastGs1Type = saved.gs1Type,
-                        lastBarcodeSaved = saved.barcodeSaved,
-                        duplicatedReadsCount = latest.duplicatedReadsCount + 1,
-                        errorMessage = "Etiqueta duplicada ignorada."
-                    )
-                } else {
-                    _uiState.value = latest.copy(
-                        lastEpc = saved.epcNormalized.ifBlank { saved.epcRaw },
-                        lastGs1Type = saved.gs1Type,
-                        lastBarcodeSaved = saved.barcodeSaved,
-                        totalReadsCount = latest.totalReadsCount + 1,
-                        validReadsCount = latest.validReadsCount + 1,
-                        errorMessage = null
-                    )
-                }
+    private suspend fun flushPending(): Boolean = withContext(NonCancellable) {
+        val batch = epcMutex.withLock {
+            val batchSize = minOf(MAX_BATCH_SIZE, pendingEpcs.size)
+
+            if (batchSize == 0) {
+                emptyList()
+            } else {
+                pendingEpcs
+                    .take(batchSize)
+                    .also {
+                        pendingEpcs.subList(0, batchSize).clear()
+                    }
             }
+        }
 
-            result.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    lastEpc = rawEpc,
-                    errorMessage = error.message ?: "No se pudo registrar la lectura RFID"
+        if (batch.isEmpty()) {
+            return@withContext false
+        }
+
+        val current = _uiState.value
+        val rutUsuario = session.loginRut.value.orEmpty().trim()
+
+        val result = withContext(Dispatchers.IO) {
+            runCatching {
+                repository.registerRfidInventoryItems(
+                    inventoryId = current.inventoryId,
+                    ubicacionId = current.selectedUbicacionId,
+                    ubicacionNombre = current.selectedUbicacionName,
+                    quantity = 1.0,
+                    unitMeasure = current.selectedUnitName,
+                    unitMeasureId = current.selectedUnitId,
+                    rutUsuario = rutUsuario,
+                    epcs = batch
                 )
             }
         }
+
+        result.onSuccess { savedResults ->
+            val lastSaved = savedResults.lastOrNull()
+            val validReads = savedResults.count { saved ->
+                !saved.isDuplicate
+            }
+            val duplicatedReads = savedResults.size - validReads
+            val latest = _uiState.value
+
+            _uiState.value = latest.copy(
+                lastEpc = lastSaved?.let { saved ->
+                    saved.epcNormalized.ifBlank { saved.epcRaw }
+                } ?: latest.lastEpc,
+                lastGs1Type = lastSaved?.gs1Type ?: latest.lastGs1Type,
+                lastBarcodeSaved = lastSaved?.barcodeSaved ?: latest.lastBarcodeSaved,
+                totalReadsCount = latest.totalReadsCount + validReads,
+                validReadsCount = latest.validReadsCount + validReads,
+                duplicatedReadsCount = latest.duplicatedReadsCount + duplicatedReads,
+                errorMessage = null
+            )
+        }
+
+        result.onFailure {
+            epcMutex.withLock {
+                seenEpcs.removeAll(batch.toSet())
+            }
+
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "No se pudo registrar el lote RFID. Las etiquetas se reintentarán."
+            )
+        }
+
+        true
     }
 
     private suspend fun clearSeenEpcs() {
@@ -489,6 +561,7 @@ class InventoryRfidViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        flusherJob?.cancel()
         super.onCleared()
 
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {

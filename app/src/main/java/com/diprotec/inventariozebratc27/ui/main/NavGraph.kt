@@ -425,10 +425,7 @@ fun AppNavHost(
                     backStackEntry.arguments?.getLong("inventoryId") ?: 0L
 
                 InventoryListScreen(
-                    inventoryId = inventoryId,
-                    onBack = {
-                        nav.popBackStack()
-                    }
+                    inventoryId = inventoryId
                 )
             }
         }

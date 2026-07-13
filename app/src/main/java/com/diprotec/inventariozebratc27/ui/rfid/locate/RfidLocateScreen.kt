@@ -1,5 +1,9 @@
 package com.diprotec.inventariozebratc27.ui.rfid.locate
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppTextField
+import com.diprotec.inventariozebratc27.ui.components.AppTopBar
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -68,28 +72,25 @@ fun RfidLocateScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+                .padding(horizontal = Dimens.space20, vertical = Dimens.space18),
             contentAlignment = Alignment.TopCenter
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 520.dp)
+                    .widthIn(max = Dimens.formContentWidth)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                verticalArrangement = Arrangement.spacedBy(Dimens.space18)
             ) {
-                OutlinedTextField(
+                AppTextField(
                     value = uiState.searchInput,
                     onValueChange = viewModel::onSearchInputChange,
                     enabled = !uiState.locating &&
                             !uiState.connecting &&
                             !uiState.searchingProduct &&
                             !uiState.checkingReader,
-                    singleLine = true,
-                    label = {
-                        Text("Código producto, secundario o descripción")
-                    },
+                    label = "Código producto, secundario o descripción",
                     leadingIcon = {
                         androidx.compose.material3.Icon(
                             imageVector = Icons.Default.QrCodeScanner,
@@ -100,24 +101,9 @@ fun RfidLocateScreen(
                         capitalization = KeyboardCapitalization.Characters,
                         keyboardType = KeyboardType.Ascii
                     ),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = White,
-                        unfocusedContainerColor = White,
-                        disabledContainerColor = White,
-                        focusedBorderColor = TealPrimary,
-                        unfocusedBorderColor = BorderGray,
-                        disabledBorderColor = BorderGray,
-                        focusedLabelColor = LabelGray,
-                        unfocusedLabelColor = LabelGray,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        disabledTextColor = TextPrimary,
-                        cursorColor = TealPrimary
-                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 72.dp)
+                        .heightIn(min = Dimens.buttonHeightLarge)
                 )
 
                 SelectedProductCard(
@@ -158,7 +144,7 @@ fun RfidLocateScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.space12),
                     verticalAlignment = Alignment.Top
                 ) {
                     InventoryMenuButton(
@@ -215,22 +201,7 @@ fun RfidLocateScreen(
 
 @Composable
 private fun RfidLocateTopBar() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
-            .statusBarsPadding()
-            .height(56.dp)
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "BUSCAR ETIQUETA RFID",
-            color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-    }
+    AppTopBar(title = "BUSCAR ETIQUETA RFID")
 }
 
 @Composable
@@ -245,10 +216,10 @@ private fun SelectedProductCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(White, RoundedCornerShape(18.dp))
-            .border(1.dp, BorderGray, RoundedCornerShape(18.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .background(White, MaterialTheme.shapes.medium)
+            .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
+            .padding(Dimens.space16),
+        verticalArrangement = Arrangement.spacedBy(Dimens.space6)
     ) {
         Text(
             text = "Producto seleccionado",
@@ -308,10 +279,10 @@ private fun TooManyOptionsCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(White, RoundedCornerShape(18.dp))
-            .border(1.dp, BorderGray, RoundedCornerShape(18.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .background(White, MaterialTheme.shapes.medium)
+            .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
+            .padding(Dimens.space16),
+        verticalArrangement = Arrangement.spacedBy(Dimens.space6)
     ) {
         Text(
             text = "Demasiadas coincidencias",
@@ -347,7 +318,7 @@ private fun SearchOptionsList(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(Dimens.space10)
     ) {
         Text(
             text = "Coincidencias encontradas ($totalOptionsFound)",
@@ -378,14 +349,14 @@ private fun RfidSearchOptionItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(White, RoundedCornerShape(16.dp))
-            .border(1.dp, BorderGray, RoundedCornerShape(16.dp))
+            .background(White, MaterialTheme.shapes.medium)
+            .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
             .clickable(
                 enabled = enabled,
                 onClick = onClick
             )
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(Dimens.space14),
+        verticalArrangement = Arrangement.spacedBy(Dimens.space4)
     ) {
         Text(
             text = option.rfidSourceLabel,
@@ -449,10 +420,10 @@ private fun LocateDistanceCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(White, RoundedCornerShape(18.dp))
-            .border(1.dp, BorderGray, RoundedCornerShape(18.dp))
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .background(White, MaterialTheme.shapes.medium)
+            .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
+            .padding(Dimens.space18),
+        verticalArrangement = Arrangement.spacedBy(Dimens.space12)
     ) {
         Text(
             text = "Proximidad",

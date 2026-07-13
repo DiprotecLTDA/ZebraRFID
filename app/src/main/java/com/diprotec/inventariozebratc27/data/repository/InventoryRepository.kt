@@ -1,5 +1,6 @@
 package com.diprotec.inventariozebratc27.data.repository
 
+import androidx.room.withTransaction
 import com.diprotec.inventariozebratc27.core.config.SettingsManager
 import com.diprotec.inventariozebratc27.core.gs1.Gs1EpcDecoder
 import com.diprotec.inventariozebratc27.data.local.dao.InventoryDao
@@ -8,6 +9,7 @@ import com.diprotec.inventariozebratc27.data.local.dao.LocationDao
 import com.diprotec.inventariozebratc27.data.local.dao.ProductDao
 import com.diprotec.inventariozebratc27.data.local.dao.RuleDao
 import com.diprotec.inventariozebratc27.data.local.dao.UserDao
+import com.diprotec.inventariozebratc27.data.local.database.AppDatabase
 import com.diprotec.inventariozebratc27.data.local.entity.InventoryEntity
 import com.diprotec.inventariozebratc27.data.local.entity.InventoryItemEntity
 import com.diprotec.inventariozebratc27.data.local.entity.InventoryRemoteEntity
@@ -33,6 +35,7 @@ data class RfidInventoryRegisterResult(
 )
 
 class InventoryRepository(
+    private val appDatabase: AppDatabase,
     private val inventoryDao: InventoryDao,
     private val inventoryItemDao: InventoryItemDao,
     private val productDao: ProductDao,
@@ -188,6 +191,54 @@ class InventoryRepository(
     }
 
     suspend fun registerRfidInventoryItem(
+        inventoryId: Long,
+        ubicacionId: String,
+        ubicacionNombre: String,
+        epc: String,
+        quantity: Double,
+        unitMeasure: String,
+        unitMeasureId: String,
+        rutUsuario: String
+    ): RfidInventoryRegisterResult {
+        return registerRfidInventoryItemInternal(
+            inventoryId = inventoryId,
+            ubicacionId = ubicacionId,
+            ubicacionNombre = ubicacionNombre,
+            epc = epc,
+            quantity = quantity,
+            unitMeasure = unitMeasure,
+            unitMeasureId = unitMeasureId,
+            rutUsuario = rutUsuario
+        )
+    }
+
+    suspend fun registerRfidInventoryItems(
+        inventoryId: Long,
+        ubicacionId: String,
+        ubicacionNombre: String,
+        quantity: Double,
+        unitMeasure: String,
+        unitMeasureId: String,
+        rutUsuario: String,
+        epcs: List<String>
+    ): List<RfidInventoryRegisterResult> {
+        return appDatabase.withTransaction {
+            epcs.map { epc ->
+                registerRfidInventoryItemInternal(
+                    inventoryId = inventoryId,
+                    ubicacionId = ubicacionId,
+                    ubicacionNombre = ubicacionNombre,
+                    epc = epc,
+                    quantity = quantity,
+                    unitMeasure = unitMeasure,
+                    unitMeasureId = unitMeasureId,
+                    rutUsuario = rutUsuario
+                )
+            }
+        }
+    }
+
+    private suspend fun registerRfidInventoryItemInternal(
         inventoryId: Long,
         ubicacionId: String,
         ubicacionNombre: String,

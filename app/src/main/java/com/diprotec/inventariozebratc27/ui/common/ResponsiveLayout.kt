@@ -1,5 +1,7 @@
 package com.diprotec.inventariozebratc27.ui.common
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -38,8 +40,8 @@ fun ResponsiveScreen(
 @Composable
 fun ResponsiveCenteredContent(
     modifier: Modifier = Modifier,
-    maxWidth: Dp = 420.dp,
-    horizontalPadding: Dp = 28.dp,
+    maxWidth: Dp = Dimens.contentWidth,
+    horizontalPadding: Dp = Dimens.space28,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(

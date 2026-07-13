@@ -1,5 +1,9 @@
 package com.diprotec.inventariozebratc27.ui.inventory.create
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppTextField
+import com.diprotec.inventariozebratc27.ui.components.AppTopBar
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -84,19 +88,19 @@ fun CreateInventoryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+                .padding(horizontal = Dimens.space20, vertical = Dimens.space18),
             contentAlignment = Alignment.Center
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 520.dp),
+                    .widthIn(max = Dimens.formContentWidth),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(28.dp)
+                verticalArrangement = Arrangement.spacedBy(Dimens.space28)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                    verticalArrangement = Arrangement.spacedBy(Dimens.space18)
                 ) {
                     ExposedDropdownMenuBox(
                         expanded = expandedInventario,
@@ -105,14 +109,11 @@ fun CreateInventoryScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedTextField(
+                        AppTextField(
                             value = uiState.selectedInventarioDescripcion,
                             onValueChange = {},
                             readOnly = true,
-                            singleLine = true,
-                            label = {
-                                FloatingFieldLabel("Seleccione inventario")
-                            },
+                            label = "Seleccione inventario",
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(
                                     expanded = expandedInventario
@@ -121,21 +122,7 @@ fun CreateInventoryScreen(
                             modifier = Modifier
                                 .menuAnchor()
                                 .fillMaxWidth()
-                                .heightIn(min = 72.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = White,
-                                unfocusedContainerColor = White,
-                                disabledContainerColor = White,
-                                focusedBorderColor = TealPrimary,
-                                unfocusedBorderColor = BorderGray,
-                                disabledBorderColor = BorderGray,
-                                focusedLabelColor = LabelGray,
-                                unfocusedLabelColor = LabelGray,
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                cursorColor = TealPrimary
-                            )
+                                .heightIn(min = Dimens.buttonHeightLarge)
                         )
 
                         DropdownMenu(
@@ -217,22 +204,7 @@ fun CreateInventoryScreen(
 private fun CreateInventoryTopBar(
     onBack: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
-            .statusBarsPadding()
-            .heightIn(min = 56.dp)
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "INVENTARIO",
-            color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-    }
+    AppTopBar(title = "INVENTARIO")
 }
 
 @Composable
@@ -245,13 +217,13 @@ private fun ReadingModeSelector(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(Dimens.space10)
     ) {
         FloatingFieldLabel("Tipo de lectura")
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.space12),
             verticalAlignment = Alignment.Top
         ) {
             InventoryMenuButton(
@@ -317,15 +289,15 @@ private fun InventoryDateInfo(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp)
+            .heightIn(min = Dimens.buttonHeightLarge)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp)
-                .background(White, RoundedCornerShape(16.dp))
-                .border(1.dp, BorderGray, RoundedCornerShape(16.dp))
-                .padding(horizontal = 16.dp, vertical = 18.dp)
+                .padding(top = Dimens.space8)
+                .background(White, MaterialTheme.shapes.medium)
+                .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
+                .padding(horizontal = Dimens.space16, vertical = Dimens.space18)
         ) {
             Text(
                 text = value,
@@ -337,9 +309,9 @@ private fun InventoryDateInfo(
 
         Box(
             modifier = Modifier
-                .padding(start = 28.dp)
+                .padding(start = Dimens.space28)
                 .background(Background)
-                .padding(horizontal = 4.dp)
+                .padding(horizontal = Dimens.space4)
         ) {
             FloatingFieldLabel(title)
         }
@@ -357,6 +329,6 @@ private fun FloatingFieldLabel(
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .background(Background)
-            .padding(horizontal = 4.dp)
+            .padding(horizontal = Dimens.space4)
     )
 }

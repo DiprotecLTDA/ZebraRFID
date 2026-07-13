@@ -1,5 +1,8 @@
 package com.diprotec.inventariozebratc27.ui.inventory.rfid
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppTextField
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -58,11 +61,6 @@ import com.diprotec.inventariozebratc27.ui.theme.TealPrimary
 import com.diprotec.inventariozebratc27.ui.theme.TextPrimary
 import com.diprotec.inventariozebratc27.ui.theme.White
 
-private val FieldSpacing = 8.dp
-private val LabelSpacing = 6.dp
-private val LabelTopPadding = 10.dp
-private val BottomContentPadding = 12.dp
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryRfidScreen(
@@ -98,9 +96,9 @@ fun InventoryRfidScreen(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 520.dp)
+                .widthIn(max = Dimens.formContentWidth)
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(horizontal = Dimens.space20, vertical = Dimens.space12)
                 .testTag("inventory_rfid_screen"),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -117,7 +115,7 @@ fun InventoryRfidScreen(
                         .fillMaxWidth()
                         .menuAnchor()
                 ) {
-                    OutlinedTextField(
+                    AppTextField(
                         value = uiState.selectedUbicacionName,
                         onValueChange = {},
                         readOnly = true,
@@ -129,10 +127,8 @@ fun InventoryRfidScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 56.dp)
-                            .testTag("input_rfid_ubicacion"),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = inventoryTextFieldColors()
+                            .heightIn(min = Dimens.buttonHeight)
+                            .testTag("input_rfid_ubicacion")
                     )
                 }
 
@@ -195,7 +191,7 @@ fun InventoryRfidScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(FieldSpacing),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.space8),
                 verticalAlignment = Alignment.Top
             ) {
                 InventoryMenuButton(
@@ -258,7 +254,7 @@ fun InventoryRfidScreen(
             }
 
             if (!uiState.errorMessage.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(LabelSpacing))
+                Spacer(modifier = Modifier.height(Dimens.space6))
 
                 Text(
                     text = uiState.errorMessage.orEmpty(),
@@ -273,8 +269,8 @@ fun InventoryRfidScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = BottomContentPadding),
-                horizontalArrangement = Arrangement.spacedBy(FieldSpacing),
+                    .padding(top = Dimens.space12),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.space8),
                 verticalAlignment = Alignment.Top
             ) {
                 InventoryMenuButton(
@@ -319,7 +315,7 @@ fun InventoryRfidScreen(
 
 @Composable
 private fun FieldSpacer() {
-    Spacer(modifier = Modifier.height(FieldSpacing))
+    Spacer(modifier = Modifier.height(Dimens.space8))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -346,7 +342,7 @@ private fun UnitDropdownField(
                 .fillMaxWidth()
                 .menuAnchor()
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = selectedUnitName,
                 onValueChange = {},
                 readOnly = true,
@@ -358,9 +354,7 @@ private fun UnitDropdownField(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = inventoryTextFieldColors()
+                    .heightIn(min = Dimens.buttonHeight)
             )
         }
 
@@ -397,10 +391,10 @@ private fun RfidStatusPanel(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(White, RoundedCornerShape(16.dp))
-            .border(1.dp, BorderGray, RoundedCornerShape(16.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .background(White, MaterialTheme.shapes.medium)
+            .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
+            .padding(horizontal = Dimens.space16, vertical = Dimens.space14),
+        verticalArrangement = Arrangement.spacedBy(Dimens.space8)
     ) {
         if (inventoryName.isNotBlank()) {
             Text(
@@ -471,7 +465,7 @@ private fun RfidInfoRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.space8),
         verticalAlignment = Alignment.Top
     ) {
         Text(
@@ -479,7 +473,7 @@ private fun RfidInfoRow(
             color = LabelGray,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(96.dp)
+            modifier = Modifier.width(Dimens.loginLogoHeight)
         )
 
         Text(
@@ -503,7 +497,7 @@ private fun FloatingLabelContainer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = LabelTopPadding)
+                .padding(top = Dimens.space10)
         ) {
             content()
         }
@@ -514,9 +508,9 @@ private fun FloatingLabelContainer(
             style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
             modifier = Modifier
-                .padding(start = 16.dp)
+                .padding(start = Dimens.space16)
                 .background(Background)
-                .padding(horizontal = 7.dp)
+                .padding(horizontal = Dimens.space7)
                 .zIndex(1f)
         )
     }

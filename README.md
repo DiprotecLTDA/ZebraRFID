@@ -1,54 +1,284 @@
 # Inventario Zebra TC27 + RFID
 
-Aplicación Android de inventario para el dispositivo **Zebra TC27** conectado a un lector **RFID RFD4030+** (Bluetooth). Permite capturar inventarios por código de barras (láser) y por lectura RFID, gestionarlos localmente y sincronizarlos con el backend.
+Aplicación Android de **toma de inventario** para el terminal **Zebra TC27** con lector **RFID RFD4030+** (conectado por Bluetooth). Permite capturar inventarios por **código de barras (láser)** y por **lectura RFID**, localizar etiquetas concretas, gestionar los inventarios localmente (offline-first) y **sincronizarlos con un backend** mediante cabeceras firmadas por dispositivo.
 
-- **Package:** `com.diprotec.inventariozebratc27`
-- **Versión:** 1.0.0
-- **minSdk:** 29 · **targetSdk:** 35 · **compileSdk:** 36
+Desarrollada por **Diprotec LTDA**.
 
-## Stack
+---
+
+## Índice
+
+1. [Especificaciones técnicas](#especificaciones-técnicas)
+2. [Stack tecnológico](#stack-tecnológico)
+3. [Arquitectura](#arquitectura)
+4. [Funcionamiento completo de la app](#funcionamiento-completo-de-la-app)
+5. [Módulo RFID](#módulo-rfid)
+6. [Seguridad y autenticación de dispositivo](#seguridad-y-autenticación-de-dispositivo)
+7. [API backend](#api-backend)
+8. [Base de datos local](#base-de-datos-local)
+9. [Sincronización en segundo plano](#sincronización-en-segundo-plano)
+10. [Sistema de diseño](#sistema-de-diseño)
+11. [Permisos](#permisos)
+12. [Compilación y firma](#compilación-y-firma)
+13. [Estructura del proyecto](#estructura-del-proyecto)
+
+---
+
+## Especificaciones técnicas
+
+| Parámetro | Valor |
+|-----------|-------|
+| Package / applicationId | `com.diprotec.inventariozebratc27` |
+| Versión | 1.0.0 (`versionCode` = major·10000 + minor·100 + patch) |
+| minSdk | 29 (Android 10) |
+| targetSdk | 35 |
+| compileSdk | 36 |
+| JVM target | 11 (compilado y probado con JDK 21) |
+| Nombre de APK | `ZEBRA_TC27_INVENTARIO_<versionName>.apk` |
+| Orientación | Vertical (portrait) fija |
+| Modo de datos | Offline-first (Room como fuente local; sincronización diferida) |
+
+**Hardware objetivo:** Zebra TC27 (Android) + lector RFID Zebra RFD4030/RFD40 vía Bluetooth. Escáner de código de barras integrado del TC27 vía EMDK/DataWedge.
+
+**SDKs de hardware:**
+- Zebra **EMDK** `com.symbol:emdk:11.0.134` (`compileOnly`; provisto por el dispositivo).
+- Zebra **RFID API3** `rfidapi3lib-2.0.5.275.aar` (AAR local en `app/libs/`).
+
+---
+
+## Stack tecnológico
 
 | Área | Tecnología |
 |------|------------|
+| Lenguaje | Kotlin |
 | UI | Jetpack Compose + Material 3 + Navigation Compose |
-| Inyección de dependencias | Hilt |
+| Inyección de dependencias | Hilt (+ Hilt WorkManager) |
 | Persistencia local | Room (BD versión 30) + DataStore Preferences |
-| Red | Retrofit + Moshi + OkHttp |
-| Trabajo en segundo plano | WorkManager (Hilt Worker) |
-| Hardware Zebra | EMDK (TC27) + RFID API3 (RFD40, AAR local) |
+| Red | Retrofit + Moshi + OkHttp (+ logging interceptor) |
+| Concurrencia | Kotlin Coroutines / Flow |
+| Trabajo en segundo plano | WorkManager (CoroutineWorker + HiltWorkerFactory) |
+| Imágenes | Coil |
+| Hardware Zebra | EMDK (TC27) + RFID API3 (RFD40) |
+
+Las dependencias se gestionan con el **version catalog** de Gradle (`gradle/libs.versions.toml`). El build usa KSP (Room/Hilt) y el compilador de Compose.
+
+---
 
 ## Arquitectura
 
-Arquitectura por capas dentro de `app/src/main/java/com/diprotec/inventariozebratc27/`:
+Clean Architecture por capas dentro de `app/src/main/java/com/diprotec/inventariozebratc27/`:
 
-- **`core/`** — utilidades transversales: red (`ApiCallExecutor`, interceptores, cabeceras firmadas), cripto/firma de dispositivo, sesión, formato, validadores, decodificador GS1/EPC.
-- **`data/`** — `local/` (Room: entidades, DAOs, migraciones, DataStore), `remote/` (DTOs, `ApiService`), `mappers/` y `repository/` (patrón interfaz + `Impl`).
-- **`di/`** — módulos Hilt (`AppModule`, `DatabaseModule`, `NetworkModule`, `RepositoryModule`, `SecurityModule`, `ServiceModule`).
-- **`rfid/`** — `ZebraRfidManager` (conexión, inventario y localización de etiquetas vía SDK Zebra) y modelos de lectura/estado.
-- **`scanner/` · `serial/`** — escáner de código de barras y serial del dispositivo Zebra.
-- **`service/`** — servicios de negocio: `SyncService` (sincronización de catálogos e inventarios), activación, autenticación, descarga de APK, versión.
-- **`worker/`** — workers de sincronización (`CatalogSyncWorker`, `PendingInventorySyncWorker`, `StartupSyncWorker`).
-- **`ui/`** — pantallas Compose y ViewModels por feature (login, menú, inventario: crear/capturar/rfid/lista/pendientes, localización RFID, ajustes, uso de datos, actualización, etc.).
+- **`core/`** — utilidades transversales:
+  - `network/` — `ApiCallExecutor` (manejo uniforme de errores y estados del JSON), interceptores (URL base dinámica, medición de uso de datos, logging solo en debug), `ProtectedHeadersBuilder` (cabeceras firmadas).
+  - `crypto/` · `key/` — firma del dispositivo, gestión de llaves en Android Keystore, timestamp y canonical string.
+  - `session/` — `SessionManager` (sesión de usuario con expiración).
+  - `config/` — `SettingsManager` (estado de configuración observable).
+  - `gs1/` — `Gs1EpcDecoder` (decodifica EPC: SGTIN-96, SSCC-96, SGLN-96, GRAI-96, GID-96, EPC URI).
+  - `format/` · `validator/` — RUT y texto.
+- **`data/`** — `local/` (Room: entidades, DAOs, migraciones, DataStore), `remote/` (DTOs, `ApiService`), `mappers/`, `repository/` (interfaz + `Impl` para catálogos; `InventoryRepository` concreto).
+- **`di/`** — módulos Hilt: `AppModule`, `DatabaseModule`, `NetworkModule`, `RepositoryModule`, `SecurityModule`, `ServiceModule`.
+- **`rfid/`** — `ZebraRfidManager` (conexión, inventario y localización vía SDK Zebra) y modelos de estado/lectura.
+- **`scanner/` · `serial/`** — recepción del escáner de código de barras y lectura del serial del dispositivo.
+- **`service/`** — `SyncService` (sincronización), `ActivateDeviceService`, `AuthService`, `VersionService`, `ApkDownloader`, `SessionLifecycleService`.
+- **`worker/`** — `StartupSyncWorker`, `CatalogSyncWorker`, `PendingInventorySyncWorker`.
+- **`ui/`** — pantallas Compose + ViewModels por feature, más `ui/theme/` (design system) y `ui/components/` (componentes reutilizables).
+
+El patrón por pantalla es **MVVM**: `Screen` (Compose, stateless respecto a la lógica) + `ViewModel` (estado en `StateFlow`, sin ningún valor de diseño).
+
+---
+
+## Funcionamiento completo de la app
+
+Punto de entrada: `MainActivity` → `NavGraph` (Navigation Compose). Rutas: `startup_gate`, `login`, `settings`, `main_menu`, `create_inventory`, `pending_inventories`, `rfid_locate`, `rfid_inventory/{id}`, `capture_inventory/{id}`, `inventory_list/{id}`, `sync_logs`, `data_usage`, `about`.
+
+### 1. Arranque (Startup Gate)
+Al abrir, `StartupGateScreen` verifica el estado del dispositivo:
+- **Activación del dispositivo:** si no está activado, se requiere configurarlo (RUT de empresa, API key, código de activación). El dispositivo se registra contra el backend (`ActivateDispositivo`) y genera/almacena su par de llaves en el Android Keystore.
+- **Sesión de dispositivo:** obtiene una `deviceSession` (`LoginDispositivo`) usando el número de serie del equipo.
+- **Chequeo de versión / OTA:** consulta la versión vigente (`GetVersion`). Si hay una nueva, muestra `StartupUpdateDialog`; si es obligatoria, bloquea hasta actualizar. La descarga e instalación del APK se hace con `ApkDownloader` + `FileProvider`.
+- **Sincronización inicial** de catálogos vía `StartupSyncWorker`.
+
+### 2. Login de usuario
+`LoginScreen` autentica al operador (RUT + credenciales) contra los usuarios sincronizados. La sesión de usuario la administra `SessionManager` con **expiración de 3 horas** de inactividad; la actividad se refresca con la interacción (con *throttle* de 1 s).
+
+### 3. Menú principal
+`MainMenuScreen` da acceso a las funciones y muestra el indicador de **modo de conexión** (online API / verificando / local) y el semáforo de sincronización (`WorkerTrafficLight`).
+
+### 4. Gestión de inventarios
+- **Crear inventario** (`CreateInventoryScreen`): toma un inventario remoto asignado y lo crea localmente para el usuario, eligiendo el modo de lectura (láser o RFID).
+- **Inventarios pendientes** (`PendingInventoriesScreen`): lista los inventarios en curso del usuario; los vencidos (según fecha `hasta`) pasan a estado `EXPIRED`.
+
+### 5. Captura por código de barras (láser)
+`CaptureInventoryScreen` + `CaptureInventoryViewModel`:
+- Modos **UNIDAD** (cantidad 1) y **CANTIDAD** (numérico con decimales).
+- Selección de **ubicación** y **unidad de medida** (catálogos sincronizados).
+- Lectura por escáner del TC27 o ingreso manual (validado: solo alfanumérico, máx. 50 caracteres). Se resuelve la descripción del producto y se registra la captura.
+
+### 6. Captura por RFID
+`InventoryRfidScreen` + `InventoryRfidViewModel`:
+- Al iniciar, `ZebraRfidManager` configura el lector (potencia máxima, sesión S0, DPO off, reporte continuo) y limpia el buffer.
+- Cada etiqueta leída se **deduplica en dos niveles** (ver [Módulo RFID](#módulo-rfid)); las etiquetas nuevas se registran una sola vez.
+- Contadores en pantalla: lecturas válidas y duplicadas. Selección de ubicación/unidad como en la captura láser.
+
+### 7. Localización de etiqueta (modo "Geiger")
+`RfidLocateScreen` + `RfidLocateViewModel`: se busca un producto (por código principal/secundario o descripción), se generan los posibles EPC (directo, ASCII-HEX, con relleno a 24 dígitos) y se inicia `TagLocationing`. La **proximidad** se muestra como porcentaje (barra animada) y con un **tono acústico** cuya cadencia aumenta al acercarse.
+
+### 8. Listado de capturas
+`InventoryListScreen`: muestra las capturas del inventario, en vista **agrupada** (por producto/ubicación/unidad, con suma de cantidades) o **desagrupada**. Permite **eliminar** capturas cuando la regla de negocio del perfil lo autoriza y el inventario no está finalizado.
+
+### 9. Finalización y sincronización
+- **Finalizar** un inventario lo marca `FINISHED` localmente y dispara el envío al backend.
+- **Envío de registros** (`SendRegistroInventario`): agrupa las capturas pendientes por inventario/usuario y las envía; al confirmarse se marcan como sincronizadas.
+- **Cierre remoto** (`FinishInventario`): notifica la finalización al backend.
+- Todo evento de sincronización queda registrado en el **log de sincronización** (`SyncLogScreen`), con resultado y modo de conexión.
+
+### 10. Utilidades
+- **Uso de datos** (`DataUsageScreen`): consumo de red medido por interceptor, clasificado por origen.
+- **Ajustes** (`SettingsScreen`): configuración de empresa/API/URL base y opciones (incluye accesos de super-admin).
+- **Acerca de** (`AboutScreen`): versión e información de la app.
+
+---
 
 ## Módulo RFID
 
-`ZebraRfidManager` configura el lector al conectarse aplicando un perfil de lectura de alto rendimiento (potencia RF máxima soportada, sesión de singulación **S0**, DPO desactivado y reporte continuo de etiquetas). En modo **localización** (búsqueda de una etiqueta concreta) usa potencia RF **moderada** —índice medio ajustable con `LOCATIONING_POWER_DIVISOR`— para que el porcentaje de proximidad varíe de forma gradual al acercarse y no se sature.
+`ZebraRfidManager` es un `@Singleton` que encapsula el SDK Zebra RFID API3 (transporte Bluetooth).
 
-La deduplicación de lecturas se realiza en dos niveles: persistente por clave GS1 en `InventoryRepository.registerRfidInventoryItem`, y en memoria por sesión (`seenEpcs` en `InventoryRfidViewModel`) para descartar las relecturas continuas de una misma etiqueta sin golpear la base de datos.
+**Perfil de lectura (inventario):** al conectar/configurar aplica:
+- **Potencia RF máxima** soportada por el lector (leída de `ReaderCapabilities`).
+- **Sesión de singulación S0** y población de tags 30.
+- **DPO (Dynamic Power Optimization) desactivado** para lecturas consistentes.
+- **Reporte continuo** (`setUniqueTagReport(false)`): cada etiqueta se reporta repetidamente para no perder lecturas.
 
-## Compilación
+**Perfil de localización (Geiger):** usa **potencia RF moderada** (índice medio de la escala soportada, ajustable con la constante `LOCATIONING_POWER_DIVISOR`) para que la distancia relativa varíe de forma gradual al acercarse y no se sature; mantiene S0 y DPO off.
 
-Requisitos: JDK 11+ (probado con Java 21), Android SDK. El SDK de RFID se incluye como AAR local en `app/libs/`.
+**Pipeline de lectura:**
+- `eventReadNotify` **drena el buffer del lector por lotes** (`getReadTags` en bucle hasta vaciarlo) y publica cada lectura con `tryEmit` en un `SharedFlow` acotado (buffer con `DROP_OLDEST`), de modo que el hilo del SDK nunca se bloquea y la memoria no crece sin límite.
+- La localización emite la distancia relativa por un `SharedFlow` propio.
+
+**Deduplicación en dos niveles:**
+1. **En memoria (por sesión):** `seenEpcs` en `InventoryRfidViewModel` descarta en O(1) las relecturas continuas de una misma etiqueta **sin consultar la base de datos**. Se limpia al cargar/detener/finalizar/salir del inventario.
+2. **Persistente (BD):** `InventoryRepository.registerRfidInventoryItem` calcula una clave GS1 única (para SGTIN-96 incluye GTIN + serial, de modo que cada etiqueta física es distinta) y consulta un índice `inventoryId + rfidGs1Key`; si ya existe, la marca como duplicada en lugar de insertarla.
+
+**Robustez ante volumen excesivo:** para no perder etiquetas cuando el lector reporta muchísimas lecturas, la captura RFID **persiste por lotes**: los EPC nuevos se encolan y se vacían en micro-lotes (~150 ms, hasta 500 por lote) dentro de **una sola transacción** (`registerRfidInventoryItems` + `AppDatabase.withTransaction`), lo que amortiza el `fsync` y sube el throughput del consumidor. El `SharedFlow` de lecturas usa un buffer amplio (16384) con `DROP_OLDEST` para absorber ráfagas sin agotar memoria. El lote pendiente se **vacía por completo antes de cerrar** la sesión (detener/finalizar/salir) y, si un lote falla, sus EPC vuelven a habilitarse para recaptura. El resultado del inventario es idéntico al de carga normal.
+
+---
+
+## Seguridad y autenticación de dispositivo
+
+Cada petición autenticada al backend viaja con cabeceras construidas por `ProtectedHeadersBuilder`:
+
+| Cabecera | Contenido |
+|----------|-----------|
+| `X-API-KEY` | Clave de API de la empresa |
+| `Authorization` | `Bearer <authToken>` |
+| `X-DEVICE-SESSION` | Sesión del dispositivo (obtenida en `LoginDispositivo`) |
+| `X-DEVICE-SIGNATURE` | Firma criptográfica de la petición (método + URL + timestamp) generada con la llave privada del dispositivo |
+| `X-DEVICE-TIMESTAMP` | Marca de tiempo de la firma |
+
+- Las **llaves del dispositivo** se generan y guardan en el **Android Keystore** (`core/key/`); la firma se realiza con `DeviceSigner` sobre un *canonical string*.
+- El **logging de red** (cuerpos y cabeceras) solo se activa en compilaciones **debug**; las cabeceras sensibles se **enmascaran** en los logs.
+- Credenciales y sesión se almacenan en **DataStore Preferences**.
+
+> Nota: hoy los tokens en DataStore no están cifrados en reposo y el tráfico permite *cleartext* (`usesCleartextTraffic=true`). Son mejoras de seguridad pendientes de evaluación (dependen de que el backend sirva por HTTPS y de una migración de almacenamiento).
+
+---
+
+## API backend
+
+Base: `https://<host>/api/website/v1/…` (URL base **dinámica** desde ajustes; `DynamicBaseUrlInterceptor`). Timeouts: conexión 60 s, lectura/escritura 120 s.
+
+| Método | Endpoint | Uso |
+|--------|----------|-----|
+| POST | `dispositivos/{empresaRUT}/ActivateDispositivo` | Activación del dispositivo |
+| POST | `dispositivos/{empresaRUT}/LoginDispositivo` | Sesión de dispositivo (por serie) |
+| POST | `versiones/{empresaRUT}/GetVersion` | Chequeo de versión / OTA |
+| GET | `usuarios/{empresaRUT}/GetUsuarios` | Catálogo de usuarios |
+| GET | `reglas/{empresaRUT}/GetReglas` | Reglas de negocio |
+| GET | `ubicaciones/{empresaRUT}/GetUbicaciones` | Catálogo de ubicaciones |
+| GET | `productos/{empresaRUT}/GetProductos` | Catálogo de productos |
+| GET | `unidadmedidas/{empresaRUT}/GetUnidadMedidas` | Unidades de medida |
+| GET | `inventarios/{empresaRUT}/GetInventarios` | Inventarios remotos asignados |
+| POST | `inventarios/{empresaRUT}/SendRegistroInventario` | Envío de capturas |
+| POST | `inventarios/{empresaRUT}/FinishInventario` | Cierre de inventario |
+
+`ApiCallExecutor` normaliza errores HTTP y el estado dentro del JSON (0/200 = éxito) a `ApiException` con mensajes seguros para el usuario.
+
+---
+
+## Base de datos local
+
+Room, **versión 30** (`AppDatabase`). Migraciones incrementales en `DatabaseMigrations` (p. ej. 28→29 añade `tipoLectura`; 29→30 añade los campos RFID e índices de deduplicación).
+
+**Entidades principales:** `UserEntity`, `RuleEntity`, `LocationEntity`, `ProductEntity`, `UnitMeasureEntity`, `InventoryEntity`, `InventoryItemEntity`, `InventoryRemoteEntity` / `InventoryRemoteUserEntity`, `BarcodeEntity`, `SyncLogEntity`, `NetworkUsageEntity`.
+
+Los catálogos se reemplazan de forma **transaccional** (`clearAll` + `upsertAll` dentro de `@Transaction`). Las capturas de inventario (`inventory_items`) tienen índices por `inventoryId + rfidGs1Key` y por estado de sincronización para consultas eficientes.
+
+---
+
+## Sincronización en segundo plano
+
+WorkManager con `HiltWorkerFactory` (el inicializador automático de WorkManager está desactivado en el manifest):
+
+- **`StartupSyncWorker`** — sincronización al arranque (catálogos e inventarios).
+- **`CatalogSyncWorker`** — sincronización **periódica cada 15 minutos** (requiere red), con *backoff* exponencial (30 s) y reintento ante errores de red/servidor.
+- **`PendingInventorySyncWorker`** — envía capturas y cierres pendientes cuando hay conectividad.
+
+`SyncService` orquesta la sincronización de catálogos (usuarios, reglas, ubicaciones, productos, unidades, inventarios remotos) y el envío/cierre de inventarios, registrando cada evento en el log.
+
+---
+
+## Sistema de diseño
+
+Todo el estilo visual vive en la capa de diseño; las pantallas y ViewModels **no contienen valores de diseño hardcodeados**.
+
+- **`ui/theme/Color.kt`** — paleta de marca y colores semánticos de estado (`StatusOnline` #2E7D32, `StatusWarning` #F9A825, `StatusError` #C62828).
+- **`ui/theme/Type.kt`** — una sola `FontFamily` y la escala tipográfica completa (headline/title/body/label).
+- **`ui/theme/Dimens.kt`** — escala de espaciado, alturas, iconos, bordes, radios, elevaciones y anchos responsivos.
+- **`ui/theme/Shape.kt`** — formas Material3 (radios 10/16/24 dp).
+- **`ui/theme/Theme.kt`** — `MaterialTheme` con colorScheme + typography + shapes.
+- **`ui/components/AppComponents.kt`** — componentes reutilizables: `AppActionButton` (primary/secondary/outline), `AppTopBar`, `AppCard`, `AppTextField`, `SectionTitle`, `StatusDot`, `StatusChip`.
+- **`ui/common/`** — `AppFloatingMessage` (mensajes flotantes) y `ResponsiveLayout` (adaptación a ancho).
+
+---
+
+## Permisos
+
+Declarados en `AndroidManifest.xml`:
+
+- **Bluetooth:** `BLUETOOTH_CONNECT`, `BLUETOOTH_SCAN` (Android 12+); `BLUETOOTH`, `BLUETOOTH_ADMIN` (≤ Android 11); `ACCESS_FINE_LOCATION` (descubrimiento BT).
+- **Zebra:** `com.symbol.emdk.permission.EMDK`, `com.zebra.provider.READ` (OEMInfo / serial).
+- **Red / sistema:** `INTERNET`, `ACCESS_NETWORK_STATE`, `REQUEST_INSTALL_PACKAGES` (OTA de la propia app).
+- `queries` para EMDK service y el content provider de Zebra; `FileProvider` para instalar el APK descargado.
+
+---
+
+## Compilación y firma
+
+Requisitos: JDK 11+ (probado con **Java 21**), Android SDK. El SDK de RFID se incluye como AAR local en `app/libs/`.
 
 ```bash
-./gradlew assembleDebug     # APK de depuración
-./gradlew assembleRelease   # APK de release (requiere configuración de firma)
+./gradlew compileDebugKotlin   # solo compilar (sin empaquetar)
+./gradlew assembleDebug        # APK de depuración
+./gradlew assembleRelease      # APK de release (minify + shrink; requiere firma)
 ```
 
-El APK se genera como `ZEBRA_TC27_INVENTARIO_<versionName>.apk`.
+- **Release:** `isMinifyEnabled` + `isShrinkResources` con ProGuard/R8 (`app/proguard-rules.pro`).
+- El APK de salida se nombra `ZEBRA_TC27_INVENTARIO_<versionName>.apk`.
 
-> **Nota de seguridad:** las llaves de firma (`*.jks`, `*.pem`) y `local.properties` están excluidas del control de versiones mediante `.gitignore`. No deben subirse al repositorio.
+> **Seguridad de repositorio:** las llaves de firma (`*.jks`, `*.pem`), `local.properties`, los directorios de build y los APK/artefactos están excluidos por `.gitignore` y **no deben** subirse al repositorio. Respalda el keystore en un gestor de secretos: sin él no se pueden firmar releases futuras.
 
-## Permisos relevantes
+---
 
-Bluetooth (`BLUETOOTH_CONNECT`, `BLUETOOTH_SCAN`), ubicación fina (descubrimiento BT), EMDK de Symbol y lectura de OEMInfo de Zebra, además de red e instalación de paquetes (actualización OTA de la propia app).
+## Estructura del proyecto
+
+```
+app/src/main/java/com/diprotec/inventariozebratc27/
+├── core/         # red, cripto/llaves, sesión, config, gs1, formato, validadores
+├── data/         # local (Room, DataStore), remote (DTO/API), mappers, repository
+├── di/           # módulos Hilt
+├── rfid/         # ZebraRfidManager + modelos
+├── scanner/ serial/   # escáner de código de barras y serial del equipo
+├── service/      # SyncService, activación, auth, versión, descarga APK, sesión
+├── worker/       # workers de sincronización
+└── ui/           # pantallas + ViewModels + theme (design system) + components
+```

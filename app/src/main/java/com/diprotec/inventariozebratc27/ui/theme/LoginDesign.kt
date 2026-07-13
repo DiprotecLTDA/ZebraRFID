@@ -1,5 +1,7 @@
 package com.diprotec.inventariozebratc27.ui.theme
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +56,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.diprotec.inventariozebratc27.R
+import com.diprotec.inventariozebratc27.ui.components.AppTextField
 import com.diprotec.inventariozebratc27.ui.login.LoginUiState
 
 @Composable
@@ -77,28 +80,28 @@ fun LoginDesignScreen(
             .fillMaxSize()
             .background(Background)
     ) {
-        val headerHeight = if (maxHeight >= 720.dp) {
-            170.dp
+        val headerHeight = if (maxHeight >= Dimens.loginHeightBreakpoint) {
+            Dimens.loginHeaderHeight
         } else {
-            140.dp
+            Dimens.loginCompactHeaderHeight
         }
 
-        val logoHeight = if (maxHeight >= 720.dp) {
-            96.dp
+        val logoHeight = if (maxHeight >= Dimens.loginHeightBreakpoint) {
+            Dimens.loginLogoHeight
         } else {
-            82.dp
+            Dimens.loginCompactLogoHeight
         }
 
-        val formMaxWidth = if (maxWidth >= 480.dp) {
-            420.dp
+        val formMaxWidth = if (maxWidth >= Dimens.loginWideWidthBreakpoint) {
+            Dimens.contentWidth
         } else {
             maxWidth
         }
 
-        val horizontalPadding = if (maxWidth >= 420.dp) {
-            28.dp
+        val horizontalPadding = if (maxWidth >= Dimens.contentWidth) {
+            Dimens.space28
         } else {
-            24.dp
+            Dimens.space24
         }
 
         Column(
@@ -117,8 +120,8 @@ fun LoginDesignScreen(
                     .weight(1f),
                 color = Background,
                 shape = RoundedCornerShape(
-                    topStart = 32.dp,
-                    topEnd = 32.dp
+                    topStart = Dimens.space32,
+                    topEnd = Dimens.space32
                 )
             ) {
                 Box(
@@ -134,7 +137,7 @@ fun LoginDesignScreen(
                             .verticalScroll(rememberScrollState())
                             .padding(
                                 horizontal = horizontalPadding,
-                                vertical = 18.dp
+                                vertical = Dimens.space18
                             ),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -146,7 +149,7 @@ fun LoginDesignScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(Dimens.space8))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -161,7 +164,7 @@ fun LoginDesignScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(Dimens.space10))
                         }
 
                         LoginInputField(
@@ -200,7 +203,7 @@ fun LoginDesignScreen(
                                 }
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Dimens.space16))
 
                         LoginInputField(
                             value = state.password,
@@ -251,12 +254,12 @@ fun LoginDesignScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        Spacer(modifier = Modifier.height(28.dp))
+                        Spacer(modifier = Modifier.height(Dimens.space28))
 
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(22.dp)
+                            verticalArrangement = Arrangement.spacedBy(Dimens.space22)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -299,7 +302,7 @@ fun LoginDesignScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.height(Dimens.space18))
 
                         state.error?.let { message ->
                             Text(
@@ -319,7 +322,7 @@ fun LoginDesignScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(Dimens.space12))
                     }
                 }
             }
@@ -348,7 +351,7 @@ private fun LoginHeader(
         Row(
             modifier = Modifier
                 .height(logoHeight)
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = Dimens.space24),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -358,7 +361,7 @@ private fun LoginHeader(
                 modifier = Modifier.height(logoHeight)
             )
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(Dimens.space14))
 
             Column(
                 modifier = Modifier.height(logoHeight),
@@ -367,7 +370,7 @@ private fun LoginHeader(
             ) {
                 Text(
                     text = "Inventario",
-                    color = Color.White,
+                    color = White,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold
                 )
@@ -389,49 +392,16 @@ private fun LoginInputField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
+    AppTextField(
         value = value,
         onValueChange = onValueChange,
-        singleLine = true,
-        maxLines = 1,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        label = {
-            Text(
-                text = label,
-                color = LabelGray
-            )
-        },
+        label = label,
         isError = isError,
         supportingText = supportingText,
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
-        textStyle = MaterialTheme.typography.titleMedium.copy(
-            color = TextPrimary
-        ),
-        modifier = modifier.heightIn(min = 72.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = TextSecondary,
-            unfocusedBorderColor = BorderGray,
-            disabledBorderColor = BorderGray,
-            errorBorderColor = ErrorRed,
-            focusedContainerColor = White,
-            unfocusedContainerColor = White,
-            disabledContainerColor = White,
-            errorContainerColor = White,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
-            disabledTextColor = TextPrimary,
-            focusedLeadingIconColor = TextSecondary,
-            unfocusedLeadingIconColor = TextSecondary,
-            disabledLeadingIconColor = TextSecondary,
-            focusedTrailingIconColor = TextSecondary,
-            unfocusedTrailingIconColor = TextSecondary,
-            disabledTrailingIconColor = TextSecondary,
-            focusedLabelColor = LabelGray,
-            unfocusedLabelColor = LabelGray,
-            cursorColor = TextSecondary
-        )
+        modifier = modifier.heightIn(min = Dimens.buttonHeightLarge)
     )
 }

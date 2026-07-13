@@ -1,5 +1,7 @@
 package com.diprotec.inventariozebratc27.ui.settings
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+
 import android.app.Activity
 import android.content.Intent
 import android.provider.DocumentsContract
@@ -61,18 +63,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diprotec.inventariozebratc27.ui.common.AppFloatingMessage
+import com.diprotec.inventariozebratc27.ui.components.AppTextField
+import com.diprotec.inventariozebratc27.ui.components.AppTopBar
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+import com.diprotec.inventariozebratc27.ui.components.SectionTitle
 import com.diprotec.inventariozebratc27.ui.theme.Background
 import com.diprotec.inventariozebratc27.ui.theme.BorderGray
 import com.diprotec.inventariozebratc27.ui.theme.ButtonRed
 import com.diprotec.inventariozebratc27.ui.theme.ButtonRedDark
 import com.diprotec.inventariozebratc27.ui.theme.InventoryMenuButton
 import com.diprotec.inventariozebratc27.ui.theme.LabelGray
+import com.diprotec.inventariozebratc27.ui.theme.SuccessBg
+import com.diprotec.inventariozebratc27.ui.theme.SuccessBorder
 import com.diprotec.inventariozebratc27.ui.theme.TextPrimary
 import com.diprotec.inventariozebratc27.ui.theme.White
 import kotlinx.coroutines.launch
-
-private val SuccessBg = Color(0xFFEFFFFC)
-private val SuccessBorder = Color(0xFFBDEBE5)
 
 @Composable
 fun SettingsScreen(
@@ -183,10 +188,10 @@ fun SettingsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 460.dp)
+                    .widthIn(max = Dimens.settingsContentWidth)
                     .verticalScroll(scrollState)
                     .imePadding()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(horizontal = Dimens.space20, vertical = Dimens.space16),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 SettingsStatusHeader(
@@ -194,11 +199,11 @@ fun SettingsScreen(
                     deviceActivated = deviceActivated
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(Dimens.space24))
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(Dimens.space14)
                 ) {
                     SettingsTextField(
                         value = s.baseUrl,
@@ -232,7 +237,7 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(Dimens.space24))
             }
         }
     }
@@ -245,14 +250,9 @@ private fun SettingsStatusHeader(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(Dimens.space12)
     ) {
-        Text(
-            text = "Estado del dispositivo",
-            color = TextPrimary,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        SectionTitle(text = "Estado del dispositivo")
 
         if (hasCreds) {
             StatusBanner(
@@ -285,7 +285,7 @@ private fun ErrorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(18.dp),
+        shape = MaterialTheme.shapes.medium,
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
@@ -303,62 +303,17 @@ private fun ErrorDialog(
             )
         },
         confirmButton = {
-            Button(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = White
-                )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    ButtonRed,
-                                    ButtonRedDark
-                                )
-                            )
-                        )
-                        .padding(horizontal = 18.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Cerrar",
-                        color = White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+            AppActionButton(
+                text = "Cerrar",
+                onClick = onDismiss
+            )
         }
     )
 }
 
 @Composable
 private fun SettingsTopBar() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
-            .statusBarsPadding()
-            .height(56.dp)
-            .padding(horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text(
-                text = "CONFIGURACIÓN",
-                color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
+    AppTopBar(title = "CONFIGURACIÓN")
 }
 
 @Composable
@@ -370,39 +325,17 @@ private fun SettingsTextField(
     enabled: Boolean = true,
     testTag: String
 ) {
-    OutlinedTextField(
+    AppTextField(
         value = value,
         onValueChange = onValueChange,
         enabled = enabled,
-        singleLine = true,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium
-            )
-        },
+        label = label,
         keyboardOptions = KeyboardOptions(
             keyboardType = keyboardType
         ),
-        shape = RoundedCornerShape(10.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            disabledContainerColor = MaterialTheme.colorScheme.surface,
-            focusedBorderColor = BorderGray,
-            unfocusedBorderColor = BorderGray,
-            disabledBorderColor = BorderGray,
-            focusedLabelColor = LabelGray,
-            unfocusedLabelColor = LabelGray,
-            disabledLabelColor = LabelGray,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
-            disabledTextColor = TextPrimary,
-            cursorColor = MaterialTheme.colorScheme.primary
-        ),
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .height(Dimens.buttonHeightLarge)
             .testTag(testTag)
     )
 }
@@ -415,19 +348,19 @@ private fun StatusBanner(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SuccessBg, RoundedCornerShape(12.dp))
-            .border(1.dp, SuccessBorder, RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .background(SuccessBg, MaterialTheme.shapes.small)
+            .border(Dimens.borderWidth, SuccessBorder, MaterialTheme.shapes.small)
+            .padding(horizontal = Dimens.space12, vertical = Dimens.space10),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.Check,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(Dimens.space18)
         )
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(Dimens.space10))
 
         Text(
             text = text,
@@ -449,10 +382,10 @@ private fun NeutralStatus(
             imageVector = Icons.Default.Info,
             contentDescription = null,
             tint = LabelGray,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(Dimens.space18)
         )
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(Dimens.space10))
 
         Text(
             text = text,
@@ -469,8 +402,8 @@ private fun SettingsBottomActions(
     onSave: () -> Unit
 ) {
     Surface(
-        tonalElevation = 4.dp,
-        shadowElevation = 8.dp,
+        tonalElevation = Dimens.space4,
+        shadowElevation = Dimens.space8,
         color = Background
     ) {
         Box(
@@ -478,13 +411,13 @@ private fun SettingsBottomActions(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .imePadding()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(horizontal = Dimens.space20, vertical = Dimens.space14),
             contentAlignment = Alignment.Center
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 460.dp),
+                    .widthIn(max = Dimens.settingsContentWidth),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.Top
             ) {

@@ -1,5 +1,10 @@
 package com.diprotec.inventariozebratc27.ui.common
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.theme.StatusError
+import com.diprotec.inventariozebratc27.ui.theme.StatusOnline
+import com.diprotec.inventariozebratc27.ui.theme.White
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -117,7 +122,7 @@ fun BoxScope.AppFloatingMessageHost(
             .align(Alignment.BottomCenter)
             .windowInsetsPadding(WindowInsets.ime)
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 18.dp, vertical = 18.dp)
+            .padding(horizontal = Dimens.space18, vertical = Dimens.space18)
     ) {
         currentMessage?.let { message ->
             FloatingMessageContent(message)
@@ -132,8 +137,8 @@ private fun FloatingMessageContent(
     val backgroundColor: Color =
         when (message.type) {
             FloatingMessageType.INFO -> MaterialTheme.colorScheme.primary
-            FloatingMessageType.SUCCESS -> Color(0xFF2E7D32)
-            FloatingMessageType.ERROR -> Color(0xFFD32F2F)
+            FloatingMessageType.SUCCESS -> StatusOnline
+            FloatingMessageType.ERROR -> StatusError
         }
 
     val icon =
@@ -146,29 +151,29 @@ private fun FloatingMessageContent(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = backgroundColor,
-        shape = RoundedCornerShape(14.dp),
-        tonalElevation = 6.dp,
-        shadowElevation = 8.dp
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = Dimens.space6,
+        shadowElevation = Dimens.space8
     ) {
         Row(
             modifier = Modifier.padding(
-                horizontal = 16.dp,
-                vertical = 13.dp
+                horizontal = Dimens.space16,
+                vertical = Dimens.space13
             ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White
+                tint = White
             )
 
             Text(
                 text = message.text,
                 modifier = Modifier
-                    .padding(start = 10.dp)
+                    .padding(start = Dimens.space10)
                     .weight(1f),
-                color = Color.White,
+                color = White,
                 style = MaterialTheme.typography.bodyMedium
             )
         }

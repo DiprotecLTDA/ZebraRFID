@@ -1,5 +1,12 @@
 package com.diprotec.inventariozebratc27.ui.syncstatus
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.theme.StatusError
+import com.diprotec.inventariozebratc27.ui.theme.StatusOnline
+import com.diprotec.inventariozebratc27.ui.theme.StatusWarning
+import com.diprotec.inventariozebratc27.ui.components.AppStatus
+import com.diprotec.inventariozebratc27.ui.components.StatusChip
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,10 +47,10 @@ fun WorkerTrafficLight(
         fallbackState
     }
 
-    val color = when (state) {
-        WorkerSyncState.SYNCING -> Color(0xFF2E7D32)
-        WorkerSyncState.WAITING -> Color(0xFFF9A825)
-        WorkerSyncState.STOPPED -> Color(0xFFC62828)
+    val status = when (state) {
+        WorkerSyncState.SYNCING -> AppStatus.ONLINE
+        WorkerSyncState.WAITING -> AppStatus.WARNING
+        WorkerSyncState.STOPPED -> AppStatus.ERROR
     }
 
     val shortValue = when (state) {
@@ -53,57 +60,9 @@ fun WorkerTrafficLight(
     }
 
     StatusChip(
-        modifier = modifier,
-        dotColor = color,
-        title = "Sincronización",
-        value = shortValue
-    )
-}
-
-@Composable
-private fun StatusChip(
-    modifier: Modifier = Modifier,
-    dotColor: Color,
-    title: String,
-    value: String
-) {
-    Surface(
         modifier = modifier
-            .widthIn(min = 150.dp)
-            .heightIn(min = 40.dp),
-        shape = RoundedCornerShape(18.dp),
-        tonalElevation = 1.dp,
-        shadowElevation = 1.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(dotColor, CircleShape)
-            )
-
-            Spacer(modifier = Modifier.size(8.dp))
-
-            Text(
-                text = "$title:",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
-
-            Spacer(modifier = Modifier.size(6.dp))
-
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-        }
-    }
+            .widthIn(min = Dimens.statusMinWidth),
+        text = "Sincronización: $shortValue",
+        status = status
+    )
 }

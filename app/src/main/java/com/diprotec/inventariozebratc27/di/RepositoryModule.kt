@@ -13,6 +13,7 @@ import com.diprotec.inventariozebratc27.data.local.dao.RuleDao
 import com.diprotec.inventariozebratc27.data.local.dao.SyncLogDao
 import com.diprotec.inventariozebratc27.data.local.dao.UnitMeasureDao
 import com.diprotec.inventariozebratc27.data.local.dao.UserDao
+import com.diprotec.inventariozebratc27.data.local.database.AppDatabase
 import com.diprotec.inventariozebratc27.data.remote.api.ApiService
 import com.diprotec.inventariozebratc27.data.repository.InventoryRemoteRepository
 import com.diprotec.inventariozebratc27.data.repository.InventoryRemoteRepositoryImpl
@@ -150,6 +151,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideInventoryRepository(
+        appDatabase: AppDatabase,
         inventoryDao: InventoryDao,
         inventoryItemDao: InventoryItemDao,
         productDao: ProductDao,
@@ -159,6 +161,7 @@ object RepositoryModule {
         settingsManager: SettingsManager
     ): InventoryRepository {
         return InventoryRepository(
+            appDatabase = appDatabase,
             inventoryDao = inventoryDao,
             inventoryItemDao = inventoryItemDao,
             productDao = productDao,

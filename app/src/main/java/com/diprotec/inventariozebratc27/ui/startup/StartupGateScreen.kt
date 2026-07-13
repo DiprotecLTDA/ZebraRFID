@@ -1,5 +1,9 @@
 package com.diprotec.inventariozebratc27.ui.startup
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+import com.diprotec.inventariozebratc27.ui.components.AppButtonStyle
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
@@ -100,8 +104,8 @@ private fun StartupGateContent(
     onContinueOffline: () -> Unit
 ) {
     ResponsiveCenteredContent(
-        maxWidth = 420.dp,
-        horizontalPadding = 28.dp,
+        maxWidth = Dimens.contentWidth,
+        horizontalPadding = Dimens.space28,
         modifier = Modifier,
     ) {
         Image(
@@ -109,15 +113,15 @@ private fun StartupGateContent(
                 id = R.drawable.logo_diprotec
             ),
             contentDescription = "Diprotec",
-            modifier = Modifier.size(140.dp)
+            modifier = Modifier.size(Dimens.loginCompactHeaderHeight)
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Dimens.space24))
 
         if (loading) {
             CircularProgressIndicator()
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.space16))
 
             Text(
                 text = message,
@@ -132,7 +136,7 @@ private fun StartupGateContent(
             )
 
             if (!error.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(Dimens.space10))
 
                 Text(
                     text = error,
@@ -141,23 +145,22 @@ private fun StartupGateContent(
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Dimens.space12))
 
                 if (canContinueOffline) {
-                    TextButton(
-                        onClick = onContinueOffline
-                    ) {
-                        Text("Continuar offline")
-                    }
+                    AppActionButton(
+                        text = "Continuar offline",
+                        onClick = onContinueOffline,
+                        style = AppButtonStyle.OUTLINE
+                    )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Dimens.space4))
                 }
 
-                TextButton(
+                AppActionButton(
+                    text = "Reintentar",
                     onClick = onRetry
-                ) {
-                    Text("Reintentar")
-                }
+                )
             }
         }
     }

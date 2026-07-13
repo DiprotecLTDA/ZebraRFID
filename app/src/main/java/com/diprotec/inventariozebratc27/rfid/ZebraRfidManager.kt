@@ -31,6 +31,7 @@ class ZebraRfidManager @Inject constructor(
 
     companion object {
         private const val TAG = "ZebraRfidManager"
+        private const val TAG_READS_BUFFER = 16384
         private const val TAG_POPULATION = 30
         private const val LOCATIONING_POWER_DIVISOR = 2
         private const val READ_TAGS_BATCH_SIZE = 100
@@ -55,7 +56,7 @@ class ZebraRfidManager @Inject constructor(
 
     private val _tagReads =
         MutableSharedFlow<RfidTagRead>(
-            extraBufferCapacity = 1000,
+            extraBufferCapacity = TAG_READS_BUFFER,
             onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
 

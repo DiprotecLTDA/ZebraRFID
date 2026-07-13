@@ -7,6 +7,44 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+### Rendimiento — Robustez ante lecturas RFID excesivas (2026-07-13)
+- **Persistencia por lotes transaccional:** para minimizar la pérdida de etiquetas cuando el
+  lector reporta un volumen excesivo, la captura RFID ya no escribe una transacción SQLite por
+  etiqueta. `InventoryRfidViewModel` encola los EPC nuevos y los vacía en micro-lotes
+  (`FLUSH_INTERVAL_MS` = 150 ms, `MAX_BATCH_SIZE` = 500) mediante el nuevo
+  `InventoryRepository.registerRfidInventoryItems`, que inserta el lote completo dentro de una
+  sola transacción (`AppDatabase.withTransaction`). Esto amortiza el `fsync`, sube el
+  throughput del consumidor y reduce los descartes por saturación.
+- **Buffer de lecturas ampliado:** `_tagReads` pasa de 1000 a 16384 (`TAG_READS_BUFFER`),
+  conservando `DROP_OLDEST`, para absorber ráfagas grandes sin crecer sin límite en memoria.
+- **Sin pérdida al cerrar:** el lote pendiente se **vacía por completo** (en `NonCancellable`)
+  antes de limpiar la caché de sesión al detener, finalizar, salir o cargar un inventario.
+- **Reintento ante fallo:** si un lote falla al persistir, sus EPC se quitan de `seenEpcs` para
+  que el reporte continuo del lector los vuelva a capturar.
+- El inventario normal no cambia de resultado: mismas capturas, mismos datos y contadores; solo
+  se persisten/refrescan en micro-lotes de ~150 ms. El método individual
+  `registerRfidInventoryItem` conserva su comportamiento.
+
+### Diseño — Sistema de diseño unificado (2026-07-13)
+- **Design system centralizado:** todo el estilo visual (colores, tipografía, tamaños de
+  texto y de botón, espaciados, formas) se movió a la capa de diseño. Se crearon
+  `ui/theme/Dimens.kt` (escala de espaciado, alturas, iconos, bordes, radios, elevaciones y
+  anchos responsivos), `ui/theme/Shape.kt` (formas Material3 10/16/24 dp) y
+  `ui/components/AppComponents.kt` (componentes reutilizables: `AppActionButton`,
+  `AppTopBar`, `AppCard`, `AppTextField`, `SectionTitle`, `StatusDot`, `StatusChip`).
+- **Tipografía única:** `Type.kt` define una sola `FontFamily` y todos los estilos usados por
+  la app (se agregaron `headlineMedium`, `titleSmall` y `bodySmall`, que antes caían a los
+  valores por defecto de Material).
+- **Colores canónicos:** estados unificados (`StatusOnline` #2E7D32, `StatusWarning` #F9A825,
+  `StatusError` #C62828); se eliminaron los colores divergentes y los `Color(0x…)` locales de
+  las pantallas.
+- **Pantallas migradas a tokens:** 0 valores de diseño hardcodeados en pantallas y
+  ViewModels; los controles estándar usan los componentes compartidos.
+- **UI listado de capturas:** se quitó la flecha "Volver" del encabezado (y el parámetro
+  `onBack` asociado en `InventoryListScreen`/`NavGraph`).
+- **Captura RFID:** el aviso *"Etiqueta duplicada ignorada"* dejó de mostrarse; se conserva
+  únicamente el contador de duplicados.
+
 ### Corregido (2026-07-13)
 - **Detector de proximidad RFID (localización):** el porcentaje de distancia no aumentaba
   al acercarse a la etiqueta porque la localización corría a potencia RF máxima y saturaba

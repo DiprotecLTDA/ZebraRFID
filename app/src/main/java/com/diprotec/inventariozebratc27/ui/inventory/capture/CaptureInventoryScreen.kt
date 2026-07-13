@@ -1,5 +1,9 @@
 package com.diprotec.inventariozebratc27.ui.inventory.capture
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppTextField
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -93,11 +97,6 @@ private const val MAX_BARCODE_LENGTH = 50
 private const val DATAWEDGE_ACTION = "com.symbol.RECEIVER"
 private const val DATAWEDGE_EXTRA_DATA_STRING = "com.symbol.datawedge.data_string"
 private const val DATAWEDGE_EXTRA_LABEL_TYPE = "com.symbol.datawedge.label_type"
-
-private val FieldSpacing = 8.dp
-private val LabelSpacing = 6.dp
-private val LabelTopPadding = 10.dp
-private val BottomContentPadding = 12.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -292,9 +291,9 @@ fun CaptureInventoryScreen(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 520.dp)
+                .widthIn(max = Dimens.formContentWidth)
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(horizontal = Dimens.space20, vertical = Dimens.space12)
                 .testTag("capture_screen"),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -311,7 +310,7 @@ fun CaptureInventoryScreen(
                         .fillMaxWidth()
                         .menuAnchor()
                 ) {
-                    OutlinedTextField(
+                    AppTextField(
                         value = uiState.selectedUbicacionName,
                         onValueChange = {},
                         readOnly = true,
@@ -323,10 +322,8 @@ fun CaptureInventoryScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 56.dp)
-                            .testTag("input_ubicacion"),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = inventoryTextFieldColors()
+                        .heightIn(min = Dimens.buttonHeight)
+                        .testTag("input_ubicacion")
                     )
                 }
 
@@ -362,7 +359,7 @@ fun CaptureInventoryScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(LabelSpacing))
+            Spacer(modifier = Modifier.height(Dimens.space6))
 
             SlideCaptureSelector(
                 selectedMode = uiState.scanMode,
@@ -398,7 +395,7 @@ fun CaptureInventoryScreen(
                         focusQuantityField()
                     }
                 ),
-                minHeight = 56.dp,
+                minHeight = Dimens.buttonHeight,
                 readOnly = false,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -458,7 +455,7 @@ fun CaptureInventoryScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(FieldSpacing)
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.space8)
                 ) {
                     InventoryTextField(
                         value = uiState.quantityInput,
@@ -477,7 +474,7 @@ fun CaptureInventoryScreen(
                             .weight(1f)
                             .testTag("input_quantity")
                             .focusRequester(quantityFocusRequester),
-                        minHeight = 56.dp
+                        minHeight = Dimens.buttonHeight
                     )
 
                     UnitDropdownField(
@@ -520,7 +517,7 @@ fun CaptureInventoryScreen(
                 onValueChange = {},
                 label = "Descripción",
                 keyboardType = KeyboardType.Text,
-                minHeight = 56.dp,
+                minHeight = Dimens.buttonHeight,
                 readOnly = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -528,7 +525,7 @@ fun CaptureInventoryScreen(
             )
 
             if (!uiState.errorMessage.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(LabelSpacing))
+                Spacer(modifier = Modifier.height(Dimens.space6))
 
                 Text(
                     text = uiState.errorMessage.orEmpty(),
@@ -543,7 +540,7 @@ fun CaptureInventoryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = BottomContentPadding),
+                    .padding(top = Dimens.space12),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.Top
             ) {
@@ -589,7 +586,7 @@ fun CaptureInventoryScreen(
 
 @Composable
 private fun FieldSpacer() {
-    Spacer(modifier = Modifier.height(FieldSpacing))
+    Spacer(modifier = Modifier.height(Dimens.space8))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -617,7 +614,7 @@ private fun UnitDropdownField(
                 .fillMaxWidth()
                 .menuAnchor()
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = selectedUnitName,
                 onValueChange = {},
                 readOnly = true,
@@ -629,16 +626,14 @@ private fun UnitDropdownField(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 56.dp)
+                    .heightIn(min = Dimens.buttonHeight)
                     .then(
                         if (focusRequester != null) {
                             Modifier.focusRequester(focusRequester)
                         } else {
                             Modifier
                         }
-                    ),
-                shape = RoundedCornerShape(16.dp),
-                colors = inventoryTextFieldColors()
+                    )
             )
         }
 
@@ -684,9 +679,9 @@ private fun SlideCaptureSelector(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(Dimens.buttonHeightCompact)
             .testTag("selector_capture_mode")
-            .clip(RoundedCornerShape(24.dp))
+            .clip(MaterialTheme.shapes.large)
             .background(White)
     ) {
         Row(
@@ -697,7 +692,7 @@ private fun SlideCaptureSelector(
                     .weight(1f)
                     .fillMaxSize()
                     .testTag("capture_mode_unit")
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(MaterialTheme.shapes.large)
                     .background(
                         if (selectedMode == CaptureMode.UNIT) {
                             Brush.horizontalGradient(
@@ -737,7 +732,7 @@ private fun SlideCaptureSelector(
                     .weight(1f)
                     .fillMaxSize()
                     .testTag("capture_mode_quantity")
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(MaterialTheme.shapes.large)
                     .background(
                         if (selectedMode == CaptureMode.QUANTITY) {
                             Brush.horizontalGradient(
@@ -784,7 +779,7 @@ private fun BarcodeInventoryTextField(
     imeAction: ImeAction = ImeAction.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     modifier: Modifier = Modifier.fillMaxWidth(),
-    minHeight: Dp = 64.dp,
+    minHeight: Dp = Dimens.cardMinHeight,
     readOnly: Boolean = false
 ) {
     var fieldValue by remember {
@@ -813,7 +808,7 @@ private fun BarcodeInventoryTextField(
         label = label,
         modifier = modifier
     ) {
-        OutlinedTextField(
+        AppTextField(
             value = fieldValue,
             onValueChange = { newValue ->
                 val clean = normalizeBarcodeInput(newValue.text)
@@ -834,9 +829,7 @@ private fun BarcodeInventoryTextField(
             keyboardActions = keyboardActions,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = minHeight),
-            shape = RoundedCornerShape(16.dp),
-            colors = inventoryTextFieldColors()
+                .heightIn(min = minHeight)
         )
     }
 }
@@ -850,7 +843,7 @@ private fun InventoryTextField(
     imeAction: ImeAction = ImeAction.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     modifier: Modifier = Modifier.fillMaxWidth(),
-    minHeight: Dp = 64.dp,
+    minHeight: Dp = Dimens.cardMinHeight,
     readOnly: Boolean = false,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
@@ -858,7 +851,7 @@ private fun InventoryTextField(
         label = label,
         modifier = modifier
     ) {
-        OutlinedTextField(
+        AppTextField(
             value = value,
             onValueChange = onValueChange,
             readOnly = readOnly,
@@ -871,9 +864,7 @@ private fun InventoryTextField(
             keyboardActions = keyboardActions,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = minHeight),
-            shape = RoundedCornerShape(16.dp),
-            colors = inventoryTextFieldColors()
+                .heightIn(min = minHeight)
         )
     }
 }
@@ -885,47 +876,15 @@ private fun RegisterCaptureButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        onClick = {
-            if (enabled) {
-                onClick()
-            }
-        },
-        shape = RoundedCornerShape(16.dp),
-        color = if (enabled) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            BorderGray
-        },
+    AppActionButton(
+        text = text,
+        onClick = onClick,
+        enabled = enabled,
+        icon = Icons.Default.CheckCircle,
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
             .testTag("btn_register_capture")
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = text,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(24.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Text(
-                text = text,
-                color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
+    )
 }
 
 @Composable
@@ -940,7 +899,7 @@ private fun FloatingLabelContainer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = LabelTopPadding)
+                .padding(top = Dimens.space10)
         ) {
             content()
         }
@@ -951,9 +910,9 @@ private fun FloatingLabelContainer(
             style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
             modifier = Modifier
-                .padding(start = 16.dp)
+                .padding(start = Dimens.space16)
                 .background(Background)
-                .padding(horizontal = 7.dp)
+                .padding(horizontal = Dimens.space7)
                 .zIndex(1f)
         )
     }

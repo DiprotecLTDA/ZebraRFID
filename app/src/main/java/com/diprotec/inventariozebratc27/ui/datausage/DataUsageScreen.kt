@@ -1,5 +1,8 @@
 package com.diprotec.inventariozebratc27.ui.datausage
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -71,8 +74,8 @@ fun DataUsageScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .widthIn(max = 520.dp)
-                .padding(20.dp)
+                .widthIn(max = Dimens.formContentWidth)
+                .padding(Dimens.space20)
         ) {
             Text(
                 text = "Consumo de datos",
@@ -81,7 +84,7 @@ fun DataUsageScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.padding(6.dp))
+            Spacer(modifier = Modifier.padding(Dimens.space6))
 
             if (state.loading) {
                 Column(
@@ -93,7 +96,7 @@ fun DataUsageScreen(
                 ) {
                     CircularProgressIndicator()
 
-                    Spacer(modifier = Modifier.padding(6.dp))
+                    Spacer(modifier = Modifier.padding(Dimens.space6))
 
                     Text(
                         text = "Cargando consumo...",
@@ -107,11 +110,11 @@ fun DataUsageScreen(
                         .fillMaxWidth()
                         .weight(1f)
                         .verticalScroll(scrollState),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(Dimens.space14)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.space12)
                     ) {
                         SummaryCard(
                             title = "Hoy",
@@ -128,7 +131,7 @@ fun DataUsageScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.space12)
                     ) {
                         SummaryCard(
                             title = "Llamadas hoy",
@@ -161,55 +164,35 @@ fun DataUsageScreen(
                         formatBytes = viewModel::formatBytes
                     )
 
-                    Spacer(modifier = Modifier.padding(4.dp))
+                    Spacer(modifier = Modifier.padding(Dimens.space4))
                 }
             }
 
-            Spacer(modifier = Modifier.padding(8.dp))
+            Spacer(modifier = Modifier.padding(Dimens.space8))
 
-            Button(
+            AppActionButton(
+                text = "Actualizar",
                 onClick = {
                     viewModel.refresh()
                 },
                 enabled = !state.loading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ButtonRed
-                ),
+                icon = Icons.Default.Refresh,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null
-                )
+            )
 
-                Spacer(modifier = Modifier.padding(3.dp))
+            Spacer(modifier = Modifier.padding(Dimens.space4))
 
-                Text("Actualizar")
-            }
-
-            Spacer(modifier = Modifier.padding(4.dp))
-
-            Button(
+            AppActionButton(
+                text = "Limpiar registros",
                 onClick = {
                     viewModel.clearLogs()
                 },
                 enabled = !state.loading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ButtonRed
-                ),
+                icon = Icons.Default.Delete,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null
-                )
+            )
 
-                Spacer(modifier = Modifier.padding(4.dp))
-
-                Text("Limpiar registros")
-            }
-
-            Spacer(modifier = Modifier.padding(8.dp))
+            Spacer(modifier = Modifier.padding(Dimens.space8))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -236,14 +219,14 @@ private fun SummaryCard(
         modifier = modifier
             .background(
                 color = White,
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.medium
             )
             .border(
-                width = 1.dp,
+                width = Dimens.borderWidth,
                 color = BorderGray,
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.medium
             )
-            .padding(16.dp)
+            .padding(Dimens.space16)
     ) {
         Text(
             text = title,
@@ -251,7 +234,7 @@ private fun SummaryCard(
             style = MaterialTheme.typography.bodySmall
         )
 
-        Spacer(modifier = Modifier.padding(4.dp))
+        Spacer(modifier = Modifier.padding(Dimens.space4))
 
         Text(
             text = value,
@@ -273,14 +256,14 @@ private fun UsageGroupCard(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.medium
             )
             .border(
-                width = 1.dp,
+                width = Dimens.borderWidth,
                 color = BorderGray,
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.medium
             )
-            .padding(16.dp)
+            .padding(Dimens.space16)
     ) {
         Text(
             text = title,
@@ -289,7 +272,7 @@ private fun UsageGroupCard(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.padding(6.dp))
+        Spacer(modifier = Modifier.padding(Dimens.space6))
 
         if (rows.isEmpty()) {
             Text(
@@ -306,7 +289,7 @@ private fun UsageGroupCard(
 
                 if (index < rows.lastIndex) {
                     Divider(
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = Dimens.space8),
                         color = BorderGray
                     )
                 }
@@ -330,7 +313,7 @@ private fun UsageRow(
             fontWeight = FontWeight.SemiBold
         )
 
-        Spacer(modifier = Modifier.padding(2.dp))
+        Spacer(modifier = Modifier.padding(Dimens.borderWidthStrong))
 
         Text(
             text = "${formatBytes(row.totalBytes)} - ${row.callCount} llamadas",

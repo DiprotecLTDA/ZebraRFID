@@ -1,5 +1,9 @@
 package com.diprotec.inventariozebratc27.ui.inventory.list
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+import com.diprotec.inventariozebratc27.ui.components.AppButtonStyle
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,14 +22,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.diprotec.inventariozebratc27.data.local.entity.InventoryItemEntity
 import com.diprotec.inventariozebratc27.ui.theme.Background
@@ -50,7 +48,6 @@ import java.util.Locale
 @Composable
 fun InventoryListScreen(
     inventoryId: Long,
-    onBack: () -> Unit,
     viewModel: InventoryListViewModel = hiltViewModel()
 ) {
     val stateFlow = remember(inventoryId) {
@@ -77,7 +74,8 @@ fun InventoryListScreen(
                 )
             },
             confirmButton = {
-                TextButton(
+                AppActionButton(
+                    text = "Eliminar",
                     onClick = {
                         viewModel.deleteItem(
                             inventoryId = inventoryId,
@@ -86,19 +84,17 @@ fun InventoryListScreen(
                         itemToDelete = null
                     },
                     modifier = Modifier.testTag("btn_confirm_delete_inventory_item")
-                ) {
-                    Text("Eliminar")
-                }
+                )
             },
             dismissButton = {
-                TextButton(
+                AppActionButton(
+                    text = "Cancelar",
                     onClick = {
                         itemToDelete = null
                     },
-                    modifier = Modifier.testTag("btn_cancel_delete_inventory_item")
-                ) {
-                    Text("Cancelar")
-                }
+                    modifier = Modifier.testTag("btn_cancel_delete_inventory_item"),
+                    style = AppButtonStyle.OUTLINE
+                )
             }
         )
     }
@@ -112,8 +108,7 @@ fun InventoryListScreen(
             .testTag("inventory_list_screen")
     ) {
         InventoryHeader(
-            title = "LISTADO DE CAPTURAS",
-            onBack = onBack
+            title = "LISTADO DE CAPTURAS"
         )
 
         Box(
@@ -125,8 +120,8 @@ fun InventoryListScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 560.dp)
-                    .padding(horizontal = 20.dp, vertical = 18.dp)
+                    .widthIn(max = Dimens.listContentWidth)
+                    .padding(horizontal = Dimens.space20, vertical = Dimens.space18)
             ) {
                 Text(
                     text = "Inventario: ${uiState.inventoryName}",
@@ -137,7 +132,7 @@ fun InventoryListScreen(
                 )
 
                 if (!uiState.canDeleteItems && uiState.errorMessage.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(Dimens.space10))
 
                     Text(
                         text = "Las capturas solo se pueden visualizar. La eliminación no está permitida para este inventario o perfil.",
@@ -148,7 +143,7 @@ fun InventoryListScreen(
                 }
 
                 if (!uiState.errorMessage.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(Dimens.space10))
 
                     Text(
                         text = uiState.errorMessage.orEmpty(),
@@ -158,7 +153,7 @@ fun InventoryListScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(Dimens.space18))
 
                 InventoryGroupedSelector(
                     isGrouped = uiState.isGrouped,
@@ -170,7 +165,7 @@ fun InventoryListScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Dimens.space16))
 
                 if (uiState.isGrouped) {
                     LazyColumn(
@@ -178,7 +173,7 @@ fun InventoryListScreen(
                             .weight(1f)
                             .fillMaxWidth()
                             .testTag("inventory_grouped_list"),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(Dimens.space10)
                     ) {
                         items(uiState.groupedItems) { item ->
                             InventoryGroupedCard(
@@ -198,7 +193,7 @@ fun InventoryListScreen(
                             .weight(1f)
                             .fillMaxWidth()
                             .testTag("inventory_ungrouped_list"),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(Dimens.space10)
                     ) {
                         items(
                             items = uiState.ungroupedItems,
@@ -226,27 +221,16 @@ fun InventoryListScreen(
 
 @Composable
 private fun InventoryHeader(
-    title: String,
-    onBack: () -> Unit
+    title: String
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.primary)
-            .height(56.dp)
-            .padding(horizontal = 8.dp),
+            .height(Dimens.buttonHeight)
+            .padding(horizontal = Dimens.space16),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(
-            onClick = onBack
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Volver",
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-
         Text(
             text = title,
             color = MaterialTheme.colorScheme.onPrimary,
@@ -265,9 +249,9 @@ private fun InventoryGroupedSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .border(1.dp, BorderGray, RoundedCornerShape(50.dp))
-            .clip(RoundedCornerShape(50.dp))
+            .height(Dimens.buttonHeight)
+            .border(Dimens.borderWidth, BorderGray, RoundedCornerShape(Dimens.radiusPill))
+            .clip(RoundedCornerShape(Dimens.radiusPill))
             .background(White),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -301,7 +285,7 @@ private fun SelectorOption(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(50.dp))
+            .clip(RoundedCornerShape(Dimens.radiusPill))
             .background(
                 if (selected) {
                     MaterialTheme.colorScheme.primary
@@ -341,15 +325,15 @@ private fun InventoryItemCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, BorderGray, RoundedCornerShape(16.dp))
-            .background(White, RoundedCornerShape(16.dp))
+            .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
+            .background(White, MaterialTheme.shapes.medium)
             .clickable(enabled = canDelete) {
                 onClick()
             }
-            .padding(16.dp)
+            .padding(Dimens.space16)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(Dimens.space6)
         ) {
             Text(
                 text = "Código: $barcode",
@@ -393,12 +377,12 @@ private fun InventoryGroupedCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, BorderGray, RoundedCornerShape(16.dp))
-            .background(White, RoundedCornerShape(16.dp))
-            .padding(16.dp)
+            .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
+            .background(White, MaterialTheme.shapes.medium)
+            .padding(Dimens.space16)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(Dimens.space6)
         ) {
             Text(
                 text = "Código: $barcode",

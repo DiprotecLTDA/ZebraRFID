@@ -1,5 +1,7 @@
 package com.diprotec.inventariozebratc27.ui.inventory.pending
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,8 +68,8 @@ fun PendingInventoriesScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 560.dp)
-                    .padding(horizontal = 20.dp, vertical = 18.dp)
+                    .widthIn(max = Dimens.listContentWidth)
+                    .padding(horizontal = Dimens.space20, vertical = Dimens.space18)
             ) {
                 PendingFinishedSelector(
                     filter = filter,
@@ -79,7 +81,7 @@ fun PendingInventoriesScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Dimens.space16))
 
                 if (items.isEmpty()) {
                     EmptyInventoryListMessage(
@@ -90,7 +92,7 @@ fun PendingInventoriesScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(Dimens.space10)
                     ) {
                         items(
                             items = items,
@@ -125,8 +127,8 @@ private fun PendingInventoriesHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.primary)
-            .height(56.dp)
-            .padding(horizontal = 16.dp),
+            .height(Dimens.buttonHeight)
+            .padding(horizontal = Dimens.space16),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -147,9 +149,9 @@ private fun PendingFinishedSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .border(1.dp, BorderGray, RoundedCornerShape(50.dp))
-            .clip(RoundedCornerShape(50.dp))
+            .height(Dimens.buttonHeight)
+            .border(Dimens.borderWidth, BorderGray, RoundedCornerShape(Dimens.radiusPill))
+            .clip(RoundedCornerShape(Dimens.radiusPill))
             .background(White),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -179,7 +181,7 @@ private fun SelectorOption(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(50.dp))
+            .clip(RoundedCornerShape(Dimens.radiusPill))
             .background(
                 if (selected) {
                     MaterialTheme.colorScheme.primary
@@ -217,7 +219,7 @@ private fun EmptyInventoryListMessage(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 28.dp),
+            .padding(top = Dimens.space28),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -237,15 +239,15 @@ private fun InventoryCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, BorderGray, RoundedCornerShape(16.dp))
-            .background(White, RoundedCornerShape(16.dp))
+            .border(Dimens.borderWidth, BorderGray, MaterialTheme.shapes.medium)
+            .background(White, MaterialTheme.shapes.medium)
             .clickable {
                 onClick()
             }
-            .padding(16.dp)
+            .padding(Dimens.space16)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(Dimens.space6)
         ) {
             Text(
                 text = item.name,

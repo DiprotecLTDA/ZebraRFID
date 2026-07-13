@@ -22,15 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-
-private val InventoryButtonMinHeight = 86.dp
-private val InventoryButtonCircleSize = 56.dp
-private val InventoryButtonIconSize = 26.dp
-private val InventoryButtonBorderWidth = 2.dp
-private val InventoryButtonTextSpacing = 6.dp
-
-private val InventoryButtonBackground = Color(0xFFFFF1F0)
 
 @Composable
 fun InventoryMenuButton(
@@ -41,10 +32,10 @@ fun InventoryMenuButton(
     enabled: Boolean = true,
     loading: Boolean = false,
     contentDescription: String = text,
-    minHeight: Dp = InventoryButtonMinHeight,
-    circleSize: Dp = InventoryButtonCircleSize,
-    iconSize: Dp = InventoryButtonIconSize,
-    textSpacing: Dp = InventoryButtonTextSpacing,
+    minHeight: Dp = Dimens.menuButtonMinHeight,
+    circleSize: Dp = Dimens.menuButtonCircleSize,
+    iconSize: Dp = Dimens.iconLarge,
+    textSpacing: Dp = Dimens.space6,
     maxTextLines: Int = 1,
     containerColor: Color = InventoryButtonBackground,
     disabledContainerColor: Color = InventoryButtonBackground,
@@ -71,7 +62,7 @@ fun InventoryMenuButton(
                 modifier = Modifier
                     .fillMaxSize()
                     .border(
-                        width = InventoryButtonBorderWidth,
+                        width = Dimens.borderWidthStrong,
                         color = if (enabled) borderColor else disabledBorderColor,
                         shape = CircleShape
                     ),
@@ -80,7 +71,7 @@ fun InventoryMenuButton(
                 if (loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(iconSize * 0.85f),
-                        strokeWidth = 2.dp,
+                        strokeWidth = Dimens.borderWidthStrong,
                         color = loadingColor
                     )
                 } else {

@@ -1,5 +1,10 @@
 package com.diprotec.inventariozebratc27.ui.synclog
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+import com.diprotec.inventariozebratc27.ui.components.AppButtonStyle
+import com.diprotec.inventariozebratc27.ui.components.AppTopBar
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -70,23 +75,22 @@ fun SyncLogScreen(
                 )
             },
             confirmButton = {
-                TextButton(
+                AppActionButton(
+                    text = "Limpiar",
                     onClick = {
                         vm.clearAll()
                         showClearDialog = false
                     }
-                ) {
-                    Text("Limpiar")
-                }
+                )
             },
             dismissButton = {
-                TextButton(
+                AppActionButton(
+                    text = "Cancelar",
                     onClick = {
                         showClearDialog = false
-                    }
-                ) {
-                    Text("Cancelar")
-                }
+                    },
+                    style = AppButtonStyle.OUTLINE
+                )
             }
         )
     }
@@ -116,8 +120,8 @@ fun SyncLogScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 560.dp)
-                    .padding(horizontal = 20.dp, vertical = 18.dp)
+                    .widthIn(max = Dimens.listContentWidth)
+                    .padding(horizontal = Dimens.space20, vertical = Dimens.space18)
             ) {
                 if (!uiState.message.isNullOrBlank()) {
                     Text(
@@ -126,7 +130,7 @@ fun SyncLogScreen(
                         color = ButtonRedDark
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(Dimens.space12))
                 }
 
                 if (!uiState.canClearLogs) {
@@ -136,7 +140,7 @@ fun SyncLogScreen(
                         color = TextPrimary
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(Dimens.space12))
                 }
 
                 if (logs.isEmpty()) {
@@ -155,7 +159,7 @@ fun SyncLogScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(Dimens.space12)
                     ) {
                         items(logs) { item ->
                             SyncLogCard(item)
@@ -173,23 +177,9 @@ private fun SyncLogTopBar(
     onBack: () -> Unit,
     onClearClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
-            .statusBarsPadding()
-            .height(56.dp)
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "HISTORIAL DE ENVÍOS",
-            color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f)
-        )
-
+    AppTopBar(
+        title = "HISTORIAL DE ENVÍOS",
+        actions = {
         if (canClearLogs) {
             IconButton(
                 onClick = onClearClick
@@ -201,7 +191,8 @@ private fun SyncLogTopBar(
                 )
             }
         }
-    }
+        }
+    )
 }
 
 @Composable
@@ -209,22 +200,22 @@ private fun SyncLogCard(
     item: SyncLogUiItem
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         color = White,
-        tonalElevation = 1.dp,
-        shadowElevation = 1.dp,
+        tonalElevation = Dimens.borderWidth,
+        shadowElevation = Dimens.borderWidth,
         modifier = Modifier
             .fillMaxWidth()
             .border(
-                width = 1.dp,
+                width = Dimens.borderWidth,
                 color = BorderGray,
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.medium
             )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.space16)
         ) {
             Text(
                 text = item.inventoryName,
@@ -233,7 +224,7 @@ private fun SyncLogCard(
                 color = TextPrimary
             )
 
-            Spacer(modifier = Modifier.size(8.dp))
+            Spacer(modifier = Modifier.size(Dimens.space8))
 
             Text(
                 text = "Evento: ${item.eventType}",
@@ -272,7 +263,7 @@ private fun SyncLogCard(
             )
 
             if (!item.message.isNullOrBlank()) {
-                Spacer(modifier = Modifier.size(8.dp))
+                Spacer(modifier = Modifier.size(Dimens.space8))
 
                 Text(
                     text = item.message,

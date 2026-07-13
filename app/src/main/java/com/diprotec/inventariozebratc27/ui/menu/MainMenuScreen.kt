@@ -1,5 +1,13 @@
 package com.diprotec.inventariozebratc27.ui.menu
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.theme.StatusError
+import com.diprotec.inventariozebratc27.ui.theme.StatusOnline
+import com.diprotec.inventariozebratc27.ui.theme.StatusWarning
+import com.diprotec.inventariozebratc27.ui.theme.OverlayScrim
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+import com.diprotec.inventariozebratc27.ui.components.AppButtonStyle
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -105,7 +113,7 @@ fun MainMenuScreen(
                 .background(Background)
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(horizontal = Dimens.space20, vertical = Dimens.space14),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -120,7 +128,7 @@ fun MainMenuScreen(
                         mode = pendingSyncState.connectionMode
                     )
 
-                    Spacer(modifier = Modifier.size(6.dp))
+                    Spacer(modifier = Modifier.size(Dimens.space6))
 
                     SessionTimeIndicator(
                         value = sessionRemainingText
@@ -128,13 +136,13 @@ fun MainMenuScreen(
                 }
 
                 if (showWorkerTrafficLight) {
-                    Spacer(modifier = Modifier.size(8.dp))
+                    Spacer(modifier = Modifier.size(Dimens.space8))
 
                     WorkerTrafficLight()
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(Dimens.space18))
 
             Box(
                 modifier = Modifier
@@ -145,8 +153,8 @@ fun MainMenuScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .widthIn(max = 520.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                        .widthIn(max = Dimens.formContentWidth),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.space18),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -258,7 +266,8 @@ fun MainMenuScreen(
                     Text("¿Desea cerrar sesión?")
                 },
                 confirmButton = {
-                    TextButton(
+                    AppActionButton(
+                        text = "Sí",
                         onClick = {
                             showLogoutDialog = false
 
@@ -266,18 +275,16 @@ fun MainMenuScreen(
                                 onDone = onSalir
                             )
                         }
-                    ) {
-                        Text("Sí")
-                    }
+                    )
                 },
                 dismissButton = {
-                    TextButton(
+                    AppActionButton(
+                        text = "No",
                         onClick = {
                             showLogoutDialog = false
-                        }
-                    ) {
-                        Text("No")
-                    }
+                        },
+                        style = AppButtonStyle.OUTLINE
+                    )
                 }
             )
         }
@@ -296,31 +303,31 @@ private fun MainMenuConnectionIndicator(
     }
 
     val dotColor = when (mode) {
-        AppConnectionMode.CHECKING -> Color(0xFFFFA000)
-        AppConnectionMode.ONLINE_API -> Color(0xFF2E7D32)
-        AppConnectionMode.LOCAL_ROOM -> Color(0xFFC63428)
+        AppConnectionMode.CHECKING -> StatusWarning
+        AppConnectionMode.ONLINE_API -> StatusOnline
+        AppConnectionMode.LOCAL_ROOM -> StatusError
     }
 
     Surface(
         modifier = modifier
-            .widthIn(min = 150.dp)
-            .heightIn(min = 40.dp),
-        shape = RoundedCornerShape(18.dp),
-        tonalElevation = 1.dp,
-        shadowElevation = 1.dp
+            .widthIn(min = Dimens.statusMinWidth)
+            .heightIn(min = Dimens.statusHeight),
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = Dimens.borderWidth,
+        shadowElevation = Dimens.borderWidth
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = Dimens.space12, vertical = Dimens.space8),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
             Box(
                 modifier = Modifier
-                    .size(12.dp)
+                    .size(Dimens.space12)
                     .background(dotColor, CircleShape)
             )
 
-            Spacer(modifier = Modifier.size(8.dp))
+            Spacer(modifier = Modifier.size(Dimens.space8))
 
             Text(
                 text = label,
@@ -339,24 +346,24 @@ private fun SessionTimeIndicator(
 ) {
     Surface(
         modifier = modifier
-            .widthIn(min = 150.dp)
-            .heightIn(min = 40.dp),
-        shape = RoundedCornerShape(18.dp),
-        tonalElevation = 1.dp,
-        shadowElevation = 1.dp
+            .widthIn(min = Dimens.statusMinWidth)
+            .heightIn(min = Dimens.statusHeight),
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = Dimens.borderWidth,
+        shadowElevation = Dimens.borderWidth
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = Dimens.space12, vertical = Dimens.space8),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
             Box(
                 modifier = Modifier
-                    .size(12.dp)
-                    .background(Color(0xFFC63428), CircleShape)
+                    .size(Dimens.space12)
+                    .background(StatusError, CircleShape)
             )
 
-            Spacer(modifier = Modifier.size(8.dp))
+            Spacer(modifier = Modifier.size(Dimens.space8))
 
             Text(
                 text = "Sesión:",
@@ -365,7 +372,7 @@ private fun SessionTimeIndicator(
                 maxLines = 1
             )
 
-            Spacer(modifier = Modifier.size(6.dp))
+            Spacer(modifier = Modifier.size(Dimens.space6))
 
             Text(
                 text = value,
@@ -386,7 +393,7 @@ private fun BlockingPendingSyncOverlay() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.38f))
+            .background(OverlayScrim)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -397,19 +404,19 @@ private fun BlockingPendingSyncOverlay() {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp),
-            shape = RoundedCornerShape(18.dp),
+                .padding(horizontal = Dimens.space32),
+            shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(
                 containerColor = White
             ),
             elevation = CardDefaults.cardElevation(
-                defaultElevation = 8.dp
+                defaultElevation = Dimens.space8
             )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(22.dp),
+                    .padding(Dimens.space22),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -419,7 +426,7 @@ private fun BlockingPendingSyncOverlay() {
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.size(12.dp))
+                Spacer(modifier = Modifier.size(Dimens.space12))
 
                 Text(
                     text = "Sincronizando inventarios pendientes...",
@@ -427,13 +434,13 @@ private fun BlockingPendingSyncOverlay() {
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                Spacer(modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(Dimens.space18))
 
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.size(12.dp))
+                Spacer(modifier = Modifier.size(Dimens.space12))
 
                 Text(
                     text = "Por favor espera",

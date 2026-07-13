@@ -26,6 +26,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.diprotec.inventariozebratc27.ui.common.AppFloatingMessage
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+import com.diprotec.inventariozebratc27.ui.components.AppButtonStyle
 import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -234,9 +236,10 @@ fun StartupUpdateDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            AppActionButton(
+                text = if (isDownloading) "Descargando..." else "Actualizar",
                 onClick = {
-                    if (isDownloading) return@TextButton
+                    if (isDownloading) return@AppActionButton
 
                     val url = apkUrl.trim()
                     val fileName = apkFileName.trim()
@@ -245,14 +248,14 @@ fun StartupUpdateDialog(
                         AppFloatingMessage.error(
                             "No hay URL de actualización disponible"
                         )
-                        return@TextButton
+                        return@AppActionButton
                     }
 
                     if (fileName.isBlank()) {
                         AppFloatingMessage.error(
                             "No hay nombre de archivo para la actualización"
                         )
-                        return@TextButton
+                        return@AppActionButton
                     }
 
                     installerOpened = false
@@ -294,19 +297,17 @@ fun StartupUpdateDialog(
                         Log.d(TAG, "initialDownloadInfo=$info")
                     }
                 }
-            ) {
-                Text(if (isDownloading) "Descargando..." else "Actualizar")
-            }
+            )
         },
         dismissButton = {
             if (!mandatory && !isDownloading) {
-                TextButton(
+                AppActionButton(
+                    text = "Más tarde",
                     onClick = {
                         onOptionalDismissed()
-                    }
-                ) {
-                    Text("Más tarde")
-                }
+                    },
+                    style = AppButtonStyle.OUTLINE
+                )
             }
         }
     )

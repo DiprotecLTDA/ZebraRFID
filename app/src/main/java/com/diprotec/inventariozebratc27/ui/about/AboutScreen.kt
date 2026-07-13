@@ -1,5 +1,10 @@
 package com.diprotec.inventariozebratc27.ui.about
 
+import com.diprotec.inventariozebratc27.ui.theme.Dimens
+import com.diprotec.inventariozebratc27.ui.components.AppActionButton
+import com.diprotec.inventariozebratc27.ui.components.AppTopBar
+import com.diprotec.inventariozebratc27.ui.components.AppCard
+
 import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -7,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -120,64 +126,45 @@ fun AboutScreen(
                     .fillMaxSize()
                     .navigationBarsPadding()
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                    .padding(horizontal = Dimens.space20, vertical = Dimens.space18),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = MaterialTheme.shapes.large,
                     color = White,
-                    modifier = Modifier.size(120.dp)
+                    modifier = Modifier.size(Dimens.progressSize)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Image(
                             bitmap = appIconBitmap,
                             contentDescription = appName,
-                            modifier = Modifier.size(88.dp)
+                            modifier = Modifier.size(Dimens.buttonHeightExtraLarge)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(22.dp))
+                Spacer(modifier = Modifier.height(Dimens.space22))
 
-                Button(
+                AppActionButton(
+                    text = when {
+                        !s.canCheckUpdates -> "Sin conexión"
+                        else -> "Chequear versión"
+                    },
                     onClick = {
                         vm.loadRemoteVersion()
                     },
                     enabled = !s.loading && s.canCheckUpdates,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                        disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.70f)
-                    ),
-                    shape = RoundedCornerShape(16.dp),
+                    loading = s.loading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
-                ) {
-                    if (s.loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                            text = when {
-                                !s.canCheckUpdates -> "Sin conexión"
-                                else -> "Chequear versión"
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                        .height(Dimens.buttonHeightMedium)
+                )
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(Dimens.space18))
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(Dimens.space10)
                 ) {
                     AboutRow(
                         label = "Versión instalada",
@@ -200,7 +187,7 @@ fun AboutScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(Dimens.space24))
             }
         }
 
@@ -224,22 +211,7 @@ fun AboutScreen(
 private fun AboutTopBar(
     onBack: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
-            .statusBarsPadding()
-            .height(56.dp)
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "ACERCA DE",
-            color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-    }
+    AppTopBar(title = "ACERCA DE")
 }
 
 private fun formatBytes(
@@ -273,32 +245,28 @@ private fun AboutRow(
             color = TextPrimary
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Dimens.space4))
 
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = White,
+        AppCard(
+            containerColor = White,
+            contentPadding = PaddingValues(
+                horizontal = Dimens.space16,
+                vertical = Dimens.space14
+            ),
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 64.dp)
+                .heightIn(min = Dimens.cardMinHeight)
                 .border(
-                    width = 1.dp,
+                    width = Dimens.borderWidth,
                     color = BorderGray,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = MaterialTheme.shapes.medium
                 )
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = TextPrimary
-                )
-            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextPrimary
+            )
         }
     }
 }
