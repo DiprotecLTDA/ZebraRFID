@@ -32,8 +32,24 @@ data class AppSettings(
     val sessionPerfilId: Int,
     val sessionLastActivityAt: Long,
     val sessionBootElapsedRealtime: Long,
-    val sessionActive: Boolean
+    val sessionActive: Boolean,
+    val rfidPowerInventoryPercent: Int,
+    val rfidPowerLocatePercent: Int,
+    val rfidBeeperVolume: String,
+    val rfidLocateToneVolumePercent: Int
 )
+
+/**
+ * Valores por defecto de la configuración RFID.
+ *
+ * Reproducen el comportamiento histórico: inventario a potencia máxima (100 %),
+ * localización a potencia media (50 %) y tono de proximidad al 80 %.
+ */
+object RfidSettingsDefaults {
+    const val POWER_INVENTORY_PERCENT = 100
+    const val POWER_LOCATE_PERCENT = 50
+    const val LOCATE_TONE_VOLUME_PERCENT = 80
+}
 
 class SettingsDataStore(private val ctx: Context) {
 
@@ -69,6 +85,15 @@ class SettingsDataStore(private val ctx: Context) {
             longPreferencesKey("session_boot_elapsed_realtime")
         private val KEY_SESSION_ACTIVE =
             booleanPreferencesKey("session_active")
+
+        private val KEY_RFID_POWER_INVENTORY =
+            intPreferencesKey("rfid_power_inventory_percent")
+        private val KEY_RFID_POWER_LOCATE =
+            intPreferencesKey("rfid_power_locate_percent")
+        private val KEY_RFID_BEEPER_VOLUME =
+            stringPreferencesKey("rfid_beeper_volume")
+        private val KEY_RFID_LOCATE_TONE_VOLUME =
+            intPreferencesKey("rfid_locate_tone_volume_percent")
     }
 
     val settingsFlow: Flow<AppSettings> = ctx.dataStore.data.map { prefs ->
@@ -91,8 +116,39 @@ class SettingsDataStore(private val ctx: Context) {
             sessionPerfilId = prefs[KEY_SESSION_PERFIL_ID] ?: -1,
             sessionLastActivityAt = prefs[KEY_SESSION_LAST_ACTIVITY_AT] ?: 0L,
             sessionBootElapsedRealtime = prefs[KEY_SESSION_BOOT_ELAPSED_REALTIME] ?: 0L,
-            sessionActive = prefs[KEY_SESSION_ACTIVE] ?: false
+            sessionActive = prefs[KEY_SESSION_ACTIVE] ?: false,
+            rfidPowerInventoryPercent = prefs[KEY_RFID_POWER_INVENTORY]
+                ?: RfidSettingsDefaults.POWER_INVENTORY_PERCENT,
+            rfidPowerLocatePercent = prefs[KEY_RFID_POWER_LOCATE]
+                ?: RfidSettingsDefaults.POWER_LOCATE_PERCENT,
+            rfidBeeperVolume = prefs[KEY_RFID_BEEPER_VOLUME].orEmpty(),
+            rfidLocateToneVolumePercent = prefs[KEY_RFID_LOCATE_TONE_VOLUME]
+                ?: RfidSettingsDefaults.LOCATE_TONE_VOLUME_PERCENT
         )
+    }
+
+    suspend fun saveRfidPowerInventoryPercent(value: Int) {
+        ctx.dataStore.edit { prefs ->
+            prefs[KEY_RFID_POWER_INVENTORY] = value.coerceIn(0, 100)
+        }
+    }
+
+    suspend fun saveRfidPowerLocatePercent(value: Int) {
+        ctx.dataStore.edit { prefs ->
+            prefs[KEY_RFID_POWER_LOCATE] = value.coerceIn(0, 100)
+        }
+    }
+
+    suspend fun saveRfidBeeperVolume(value: String) {
+        ctx.dataStore.edit { prefs ->
+            prefs[KEY_RFID_BEEPER_VOLUME] = value.trim().uppercase()
+        }
+    }
+
+    suspend fun saveRfidLocateToneVolumePercent(value: Int) {
+        ctx.dataStore.edit { prefs ->
+            prefs[KEY_RFID_LOCATE_TONE_VOLUME] = value.coerceIn(0, 100)
+        }
     }
 
     suspend fun save(

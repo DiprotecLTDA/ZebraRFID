@@ -1,7 +1,9 @@
 package com.diprotec.inventariozebratc27.core.config
 
 import android.content.Context
+import com.diprotec.inventariozebratc27.data.local.datastore.RfidSettingsDefaults
 import com.diprotec.inventariozebratc27.data.local.datastore.SettingsDataStore
+import com.diprotec.inventariozebratc27.rfid.RfidBeeperVolume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,6 +72,22 @@ class SettingsManager(
     private val _sessionActive = MutableStateFlow(false)
     val sessionActive: StateFlow<Boolean> = _sessionActive
 
+    private val _rfidPowerInventoryPercent =
+        MutableStateFlow(RfidSettingsDefaults.POWER_INVENTORY_PERCENT)
+    val rfidPowerInventoryPercent: StateFlow<Int> = _rfidPowerInventoryPercent
+
+    private val _rfidPowerLocatePercent =
+        MutableStateFlow(RfidSettingsDefaults.POWER_LOCATE_PERCENT)
+    val rfidPowerLocatePercent: StateFlow<Int> = _rfidPowerLocatePercent
+
+    private val _rfidBeeperVolume =
+        MutableStateFlow(RfidBeeperVolume.DEFAULT)
+    val rfidBeeperVolume: StateFlow<RfidBeeperVolume> = _rfidBeeperVolume
+
+    private val _rfidLocateToneVolumePercent =
+        MutableStateFlow(RfidSettingsDefaults.LOCATE_TONE_VOLUME_PERCENT)
+    val rfidLocateToneVolumePercent: StateFlow<Int> = _rfidLocateToneVolumePercent
+
     fun isConfiguredNow(): Boolean {
         return baseUrl.value.isNotBlank() &&
                 empresaRut.value.isNotBlank() &&
@@ -99,8 +117,28 @@ class SettingsManager(
                 _sessionLastActivityAt.value = s.sessionLastActivityAt
                 _sessionBootElapsedRealtime.value = s.sessionBootElapsedRealtime
                 _sessionActive.value = s.sessionActive
+                _rfidPowerInventoryPercent.value = s.rfidPowerInventoryPercent
+                _rfidPowerLocatePercent.value = s.rfidPowerLocatePercent
+                _rfidBeeperVolume.value = RfidBeeperVolume.fromName(s.rfidBeeperVolume)
+                _rfidLocateToneVolumePercent.value = s.rfidLocateToneVolumePercent
             }
         }
+    }
+
+    suspend fun saveRfidPowerInventoryPercent(value: Int) {
+        store.saveRfidPowerInventoryPercent(value)
+    }
+
+    suspend fun saveRfidPowerLocatePercent(value: Int) {
+        store.saveRfidPowerLocatePercent(value)
+    }
+
+    suspend fun saveRfidBeeperVolume(value: RfidBeeperVolume) {
+        store.saveRfidBeeperVolume(value.name)
+    }
+
+    suspend fun saveRfidLocateToneVolumePercent(value: Int) {
+        store.saveRfidLocateToneVolumePercent(value)
     }
 
     suspend fun save(

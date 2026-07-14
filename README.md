@@ -89,7 +89,7 @@ El patrón por pantalla es **MVVM**: `Screen` (Compose, stateless respecto a la 
 
 ## Funcionamiento completo de la app
 
-Punto de entrada: `MainActivity` → `NavGraph` (Navigation Compose). Rutas: `startup_gate`, `login`, `settings`, `main_menu`, `create_inventory`, `pending_inventories`, `rfid_locate`, `rfid_inventory/{id}`, `capture_inventory/{id}`, `inventory_list/{id}`, `sync_logs`, `data_usage`, `about`.
+Punto de entrada: `MainActivity` → `NavGraph` (Navigation Compose). Rutas: `startup_gate`, `login`, `settings`, `main_menu`, `create_inventory`, `pending_inventories`, `rfid_locate`, `rfid_settings`, `rfid_inventory/{id}`, `capture_inventory/{id}`, `inventory_list/{id}`, `sync_logs`, `data_usage`, `about`.
 
 ### 1. Arranque (Startup Gate)
 Al abrir, `StartupGateScreen` verifica el estado del dispositivo:
@@ -128,11 +128,12 @@ Al abrir, `StartupGateScreen` verifica el estado del dispositivo:
 
 ### 9. Finalización y sincronización
 - **Finalizar** un inventario lo marca `FINISHED` localmente y dispara el envío al backend.
-- **Envío de registros** (`SendRegistroInventario`): agrupa las capturas pendientes por inventario/usuario y las envía; al confirmarse se marcan como sincronizadas.
+- **Envío de registros** (`SendRegistroInventario`): agrupa las capturas pendientes por inventario/usuario y las envía **troceadas en bloques de 500** (un inventario RFID puede acumular miles de lecturas y un único request con todas arriesgaría timeouts o rechazo del servidor). Cada bloque se marca como sincronizado por separado, de modo que un fallo no descarta el progreso ya confirmado.
 - **Cierre remoto** (`FinishInventario`): notifica la finalización al backend.
 - Todo evento de sincronización queda registrado en el **log de sincronización** (`SyncLogScreen`), con resultado y modo de conexión.
 
 ### 10. Utilidades
+- **Configuración RFID** (`RfidSettingsScreen`, desde el menú principal, sin restricción de perfil): permite ajustar la **potencia de antena por separado** para inventario y para localización (0-100 %), el **volumen del beep del lector** (Alto/Medio/Bajo/Silencio) y el **volumen del tono de proximidad** de la app (0-100 %, 0 % silencia), de forma independiente. Incluye restaurar valores por defecto. Los cambios se aplican en la siguiente lectura o búsqueda.
 - **Uso de datos** (`DataUsageScreen`): consumo de red medido por interceptor, clasificado por origen.
 - **Ajustes** (`SettingsScreen`): configuración de empresa/API/URL base y opciones (incluye accesos de super-admin).
 - **Acerca de** (`AboutScreen`): versión e información de la app.
@@ -144,12 +145,15 @@ Al abrir, `StartupGateScreen` verifica el estado del dispositivo:
 `ZebraRfidManager` es un `@Singleton` que encapsula el SDK Zebra RFID API3 (transporte Bluetooth).
 
 **Perfil de lectura (inventario):** al conectar/configurar aplica:
-- **Potencia RF máxima** soportada por el lector (leída de `ReaderCapabilities`).
+- **Potencia RF configurable** (por defecto **100 %** = máximo soportado, leído de `ReaderCapabilities`).
 - **Sesión de singulación S0** y población de tags 30.
 - **DPO (Dynamic Power Optimization) desactivado** para lecturas consistentes.
 - **Reporte continuo** (`setUniqueTagReport(false)`): cada etiqueta se reporta repetidamente para no perder lecturas.
+- **Volumen del beeper del lector** configurable (`Config.setBeeperVolume`).
 
-**Perfil de localización (Geiger):** usa **potencia RF moderada** (índice medio de la escala soportada, ajustable con la constante `LOCATIONING_POWER_DIVISOR`) para que la distancia relativa varíe de forma gradual al acercarse y no se sature; mantiene S0 y DPO off.
+**Perfil de localización (Geiger):** usa una **potencia RF menor** (por defecto **50 %**) para que la distancia relativa varíe de forma gradual al acercarse y no se sature; mantiene S0 y DPO off.
+
+**Configuración de potencia:** se persiste como **porcentaje (0-100 %), no como índice**. El índice de potencia depende del lector conectado, mientras que el porcentaje puede configurarse sin lector presente, es portable entre modelos y se convierte al índice soportado en el momento de aplicarlo (acotado al rango real del equipo). Ver [Configuración RFID](#10-utilidades).
 
 **Pipeline de lectura:**
 - `eventReadNotify` **drena el buffer del lector por lotes** (`getReadTags` en bucle hasta vaciarlo) y publica cada lectura con `tryEmit` en un `SharedFlow` acotado (buffer con `DROP_OLDEST`), de modo que el hilo del SDK nunca se bloquea y la memoria no crece sin límite.

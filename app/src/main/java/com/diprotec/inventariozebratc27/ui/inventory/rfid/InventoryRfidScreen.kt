@@ -4,6 +4,14 @@ import com.diprotec.inventariozebratc27.ui.theme.Dimens
 import com.diprotec.inventariozebratc27.ui.components.AppTextField
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.runtime.remember
+import com.diprotec.inventariozebratc27.ui.theme.OverlayScrim
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -235,10 +243,10 @@ fun InventoryRfidScreen(
                 )
 
                 InventoryMenuButton(
-                    text = if (uiState.stoppingReading) {
-                        "Deteniendo..."
-                    } else {
-                        "Detener"
+                    text = when {
+                        uiState.processingCaptures -> "Procesando..."
+                        uiState.stoppingReading -> "Deteniendo..."
+                        else -> "Detener"
                     },
                     icon = Icons.Default.Stop,
                     enabled = uiState.isReading &&
@@ -307,6 +315,82 @@ fun InventoryRfidScreen(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("btn_rfid_finish_inventory")
+                )
+            }
+        }
+
+        if (uiState.processingCaptures) {
+            ProcessingCapturesOverlay()
+        }
+    }
+}
+
+/**
+ * Bloquea la pantalla mientras se persisten las capturas encoladas al detener la
+ * lectura, para que el operador no salga creyendo que el proceso ya terminó.
+ */
+@Composable
+private fun ProcessingCapturesOverlay() {
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(OverlayScrim)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {}
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimens.space32),
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(
+                containerColor = White
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = Dimens.space8
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Dimens.space22),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Procesando capturas...",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.size(Dimens.space12))
+
+                Text(
+                    text = "Guardando las lecturas pendientes.",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.size(Dimens.space18))
+
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.size(Dimens.space12))
+
+                Text(
+                    text = "Por favor espera",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }

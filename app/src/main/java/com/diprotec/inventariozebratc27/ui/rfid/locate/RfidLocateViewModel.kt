@@ -5,6 +5,7 @@ import android.media.ToneGenerator
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.diprotec.inventariozebratc27.core.config.SettingsManager
 import com.diprotec.inventariozebratc27.data.local.entity.ProductEntity
 import com.diprotec.inventariozebratc27.data.repository.ProductRepository
 import com.diprotec.inventariozebratc27.rfid.ZebraRfidManager
@@ -21,7 +22,8 @@ import kotlinx.coroutines.withContext
 @HiltViewModel
 class RfidLocateViewModel @Inject constructor(
     private val rfidManager: ZebraRfidManager,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val settings: SettingsManager
 ) : ViewModel() {
 
     companion object {
@@ -32,10 +34,12 @@ class RfidLocateViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(RfidLocateUiState())
     val uiState: StateFlow<RfidLocateUiState> = _uiState.asStateFlow()
 
-    private val toneGenerator = ToneGenerator(
-        AudioManager.STREAM_MUSIC,
-        80
-    )
+    /**
+     * El volumen de [ToneGenerator] se fija al construirlo, por eso se recrea
+     * cuando cambia el volumen configurado para el tono de proximidad.
+     */
+    private var toneGenerator: ToneGenerator? = null
+    private var toneGeneratorVolume: Int = -1
 
     private var beepJob: Job? = null
     private var locatingEpc: String = ""
@@ -490,8 +494,10 @@ class RfidLocateViewModel @Inject constructor(
             while (_uiState.value.locating) {
                 val distance = _uiState.value.relativeDistance
 
-                if (distance > 0) {
-                    toneGenerator.startTone(
+                val volume = settings.rfidLocateToneVolumePercent.value
+
+                if (distance > 0 && volume > 0) {
+                    toneGeneratorFor(volume)?.startTone(
                         ToneGenerator.TONE_PROP_BEEP,
                         80
                     )
@@ -500,6 +506,22 @@ class RfidLocateViewModel @Inject constructor(
                 kotlinx.coroutines.delay(beepDelay(distance))
             }
         }
+    }
+
+    private fun toneGeneratorFor(volume: Int): ToneGenerator? {
+        val safeVolume = volume.coerceIn(1, 100)
+
+        if (toneGenerator == null || toneGeneratorVolume != safeVolume) {
+            runCatching { toneGenerator?.release() }
+
+            toneGenerator = runCatching {
+                ToneGenerator(AudioManager.STREAM_MUSIC, safeVolume)
+            }.getOrNull()
+
+            toneGeneratorVolume = safeVolume
+        }
+
+        return toneGenerator
     }
 
     private fun stopBeepLoop() {
@@ -526,7 +548,8 @@ class RfidLocateViewModel @Inject constructor(
             }
         }
 
-        toneGenerator.release()
+        runCatching { toneGenerator?.release() }
+        toneGenerator = null
 
         super.onCleared()
     }

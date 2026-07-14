@@ -33,6 +33,7 @@ import com.diprotec.inventariozebratc27.ui.inventory.rfid.InventoryRfidScreen
 import com.diprotec.inventariozebratc27.ui.login.LoginScreen
 import com.diprotec.inventariozebratc27.ui.menu.MainMenuScreen
 import com.diprotec.inventariozebratc27.ui.rfid.locate.RfidLocateScreen
+import com.diprotec.inventariozebratc27.ui.rfid.settings.RfidSettingsScreen
 import com.diprotec.inventariozebratc27.ui.settings.SettingsScreen
 import com.diprotec.inventariozebratc27.ui.startup.StartupGateScreen
 import com.diprotec.inventariozebratc27.ui.synclog.SyncLogScreen
@@ -51,6 +52,7 @@ sealed class Screen(val route: String) {
     data object SyncLogs : Screen("sync_logs")
     data object DataUsage : Screen("data_usage")
     data object RfidLocate : Screen("rfid_locate")
+    data object RfidSettings : Screen("rfid_settings")
     data object RfidInventory : Screen("rfid_inventory/{inventoryId}")
     data object CaptureInventory : Screen("capture_inventory/{inventoryId}")
     data object InventoryList : Screen("inventory_list/{inventoryId}")
@@ -229,6 +231,11 @@ fun AppNavHost(
                             launchSingleTop = true
                         }
                     },
+                    onConfiguracionRfid = {
+                        nav.navigate(Screen.RfidSettings.route) {
+                            launchSingleTop = true
+                        }
+                    },
                     onAcercaDe = {
                         nav.navigate(Screen.About.route) {
                             launchSingleTop = true
@@ -267,6 +274,14 @@ fun AppNavHost(
 
             composable(Screen.RfidLocate.route) {
                 RfidLocateScreen(
+                    onBack = {
+                        nav.popBackStack()
+                    }
+                )
+            }
+
+            composable(Screen.RfidSettings.route) {
+                RfidSettingsScreen(
                     onBack = {
                         nav.popBackStack()
                     }

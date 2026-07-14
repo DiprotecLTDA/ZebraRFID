@@ -7,6 +7,37 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+### Añadido — Configuración RFID ajustable (2026-07-14)
+- **Nueva pantalla "Configuración RFID"**, accesible desde el menú principal y **sin
+  restricción de perfil** (ruta `rfid_settings`, `ui/rfid/settings/`).
+- **Potencia de antena configurable por separado** para *inventario* y *localización*
+  (sliders 0-100 %). Se guarda el **porcentaje y no el índice** de potencia: el índice
+  depende del lector conectado, mientras que el porcentaje funciona sin lector presente,
+  es portable entre modelos y se mapea al índice soportado en el momento de aplicarlo
+  (`powerIndexForPercent`, con `coerceIn` sobre el rango real del equipo).
+- **Los dos beeps son ajustables de forma independiente:**
+  - *Beep del lector* — pitido físico del RFD4030, vía `Config.setBeeperVolume`
+    (Alto / Medio / Bajo / Silencio, ver `RfidBeeperVolume`).
+  - *Tono de proximidad* — tono que emite la app al localizar (0-100 %; 0 % silencia).
+    El `ToneGenerator` se recrea al cambiar el volumen, ya que este se fija al construirlo.
+- Botón para restaurar los valores por defecto.
+- **Compatibilidad:** sin ajustes guardados el comportamiento es idéntico al anterior
+  (inventario 100 %, localización 50 %, beeper Alto, tono 80 %). Reemplaza a la constante
+  `LOCATIONING_POWER_DIVISOR`.
+
+### Cambiado — Cierre de captura y envío de capturas (2026-07-14)
+- **"Procesando capturas…":** al detener la lectura, el indicador se mantiene hasta que
+  termina el vaciado del lote pendiente (antes `stoppingReading` se apagaba antes de
+  persistir) y se muestra un overlay bloqueante, para que el operador no salga de la
+  pantalla creyendo que el proceso ya terminó.
+- **Drenado protegido:** `stopFlusherAndFlushPending()` envuelve **todo el bucle** de
+  vaciado en `NonCancellable` (antes solo el lote en vuelo), de modo que si el ViewModel
+  se destruye a mitad no se pierden capturas encoladas.
+- **Envío de capturas troceado:** `SyncService` envía las capturas en bloques de 500
+  (`CAPTURAS_POR_ENVIO`) en lugar de un único request con todas, con cabeceras firmadas
+  por request. Cada bloque se marca como sincronizado por separado, así un fallo no
+  descarta el progreso de los bloques ya confirmados.
+
 ### Rendimiento — Robustez ante lecturas RFID excesivas (2026-07-13)
 - **Persistencia por lotes transaccional:** para minimizar la pérdida de etiquetas cuando el
   lector reporta un volumen excesivo, la captura RFID ya no escribe una transacción SQLite por

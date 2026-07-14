@@ -397,93 +397,102 @@ class SyncService(
                     inventory?.status
                         ?: InventoryStatus.PENDING.name
 
-                try {
-                    val relativeUrl =
-                        "/api/website/v1/inventarios/" +
-                                "$empresaRut/SendRegistroInventario"
+                /*
+                 * Las capturas se envían troceadas: un inventario RFID puede acumular
+                 * miles de lecturas y un único request con todas resultaría en un cuerpo
+                 * enorme (riesgo de timeout o rechazo del servidor). Cada bloque se marca
+                 * como sincronizado por separado, de modo que un fallo no descarta el
+                 * progreso de los bloques ya confirmados.
+                 */
+                capturas.chunked(CAPTURAS_POR_ENVIO).forEach { bloque ->
+                    try {
+                        val relativeUrl =
+                            "/api/website/v1/inventarios/" +
+                                    "$empresaRut/SendRegistroInventario"
 
-                    val headers = headersBuilder.build(
-                        method = "POST",
-                        relativeUrl = relativeUrl
-                    )
+                        val headers = headersBuilder.build(
+                            method = "POST",
+                            relativeUrl = relativeUrl
+                        )
 
-                    val request = RegistroInventarioRequest(
-                        InventarioId = inventarioId,
-                        Capturas = capturas.map { item ->
-                            RegistroInventarioCapturaRequest(
-                                UbicacionId = item.ubicacionId,
-                                DispositivoId = item.dispositivoId,
-                                ProductoCodigo = item.barcode,
-                                Cantidad = formatCantidad(
-                                    item.quantity
-                                ),
-                                UnidadMedidaId =
-                                    item.unitMeasureId.ifBlank {
-                                        item.unitMeasure
-                                    },
-                                Fecha = item.fecha,
-                                Hora = item.hora,
-                                RutUsuario = item.rutUsuario
+                        val request = RegistroInventarioRequest(
+                            InventarioId = inventarioId,
+                            Capturas = bloque.map { item ->
+                                RegistroInventarioCapturaRequest(
+                                    UbicacionId = item.ubicacionId,
+                                    DispositivoId = item.dispositivoId,
+                                    ProductoCodigo = item.barcode,
+                                    Cantidad = formatCantidad(
+                                        item.quantity
+                                    ),
+                                    UnidadMedidaId =
+                                        item.unitMeasureId.ifBlank {
+                                            item.unitMeasure
+                                        },
+                                    Fecha = item.fecha,
+                                    Hora = item.hora,
+                                    RutUsuario = item.rutUsuario
+                                )
+                            }
+                        )
+
+                        val response = apiCallExecutor.execute {
+                            api.sendRegistroInventario(
+                                empresaRUT = empresaRut,
+                                apiKey = headers.apiKey,
+                                authorization = headers.authorization,
+                                deviceSession = headers.deviceSession,
+                                deviceSignature =
+                                    headers.deviceSignature,
+                                deviceTimestamp =
+                                    headers.deviceTimestamp,
+                                body = request
                             )
                         }
-                    )
 
-                    val response = apiCallExecutor.execute {
-                        api.sendRegistroInventario(
-                            empresaRUT = empresaRut,
-                            apiKey = headers.apiKey,
-                            authorization = headers.authorization,
-                            deviceSession = headers.deviceSession,
-                            deviceSignature =
-                                headers.deviceSignature,
-                            deviceTimestamp =
-                                headers.deviceTimestamp,
-                            body = request
+                        val ids = bloque.map { it.id }
+
+                        inventoryRepository
+                            .markCapturasSincronizadas(ids)
+
+                        totalSincronizadas += ids.size
+
+                        insertSyncLog(
+                            remoteInventoryId = inventarioId,
+                            inventoryName = inventoryName,
+                            eventType = EVENT_CAPTURES_SENT,
+                            capturesCount = ids.size,
+                            inventoryStatus = inventoryStatus,
+                            result = RESULT_ENVIADO,
+                            connectionMode = MODE_ONLINE_API,
+                            message = response.Respuesta
+                                ?.trim()
+                                ?.takeIf { it.isNotBlank() }
+                                ?: "Capturas enviadas correctamente"
                         )
+
+                        Log.d(
+                            TAG,
+                            "Inventario $inventarioId sincronizado. " +
+                                    "RutUsuario=$rutUsuario, " +
+                                    "capturas=${ids.size}"
+                        )
+                    } catch (throwable: Throwable) {
+                        insertSyncLog(
+                            remoteInventoryId = inventarioId,
+                            inventoryName = inventoryName,
+                            eventType = EVENT_CAPTURES_FAILED,
+                            capturesCount = bloque.size,
+                            inventoryStatus = inventoryStatus,
+                            result = RESULT_ERROR,
+                            connectionMode =
+                                connectionModeForError(throwable),
+                            message =
+                                userSafeErrorMessage(throwable)
+                        )
+
+                        throw throwable
                     }
-
-                    val ids = capturas.map { it.id }
-
-                    inventoryRepository
-                        .markCapturasSincronizadas(ids)
-
-                    totalSincronizadas += ids.size
-
-                    insertSyncLog(
-                        remoteInventoryId = inventarioId,
-                        inventoryName = inventoryName,
-                        eventType = EVENT_CAPTURES_SENT,
-                        capturesCount = ids.size,
-                        inventoryStatus = inventoryStatus,
-                        result = RESULT_ENVIADO,
-                        connectionMode = MODE_ONLINE_API,
-                        message = response.Respuesta
-                            ?.trim()
-                            ?.takeIf { it.isNotBlank() }
-                            ?: "Capturas enviadas correctamente"
-                    )
-
-                    Log.d(
-                        TAG,
-                        "Inventario $inventarioId sincronizado. " +
-                                "RutUsuario=$rutUsuario, " +
-                                "capturas=${ids.size}"
-                    )
-                } catch (throwable: Throwable) {
-                    insertSyncLog(
-                        remoteInventoryId = inventarioId,
-                        inventoryName = inventoryName,
-                        eventType = EVENT_CAPTURES_FAILED,
-                        capturesCount = capturas.size,
-                        inventoryStatus = inventoryStatus,
-                        result = RESULT_ERROR,
-                        connectionMode =
-                            connectionModeForError(throwable),
-                        message =
-                            userSafeErrorMessage(throwable)
-                    )
-
-                    throw throwable
                 }
             }
 
@@ -852,6 +861,11 @@ class SyncService(
 
     companion object {
         private const val TAG = "SyncService"
+
+        /**
+         * Máximo de capturas por request de SendRegistroInventario.
+         */
+        private const val CAPTURAS_POR_ENVIO = 500
 
         private const val EVENT_CAPTURES_SENT =
             "CAPTURES_SENT"

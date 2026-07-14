@@ -64,6 +64,7 @@ data class InventoryRfidUiState(
     val verifyingConnection: Boolean = false,
     val startingReading: Boolean = false,
     val stoppingReading: Boolean = false,
+    val processingCaptures: Boolean = false,
 
     val errorMessage: String? = null
 )
@@ -306,14 +307,22 @@ class InventoryRfidViewModel @Inject constructor(
                 rfidManager.stopInventory()
             }
 
+            // El lector ya no lee, pero las capturas encoladas siguen persistiéndose:
+            // se mantiene el indicador hasta terminar el vaciado para que el operador
+            // no salga de la pantalla creyendo que el proceso terminó.
             _uiState.value = _uiState.value.copy(
-                stoppingReading = false,
                 isReading = false,
+                processingCaptures = true,
                 errorMessage = null
             )
 
             stopFlusherAndFlushPending()
             clearSeenEpcs()
+
+            _uiState.value = _uiState.value.copy(
+                stoppingReading = false,
+                processingCaptures = false
+            )
         }
     }
 
@@ -456,12 +465,21 @@ class InventoryRfidViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Detiene el flusher y vacía TODOS los lotes pendientes.
+     *
+     * El bloque completo es [NonCancellable]: si el ViewModel se destruye a mitad del
+     * vaciado (salir de la pantalla, cancelación del scope), el drenado igual termina y
+     * no se pierden capturas encoladas.
+     */
     private suspend fun stopFlusherAndFlushPending() {
-        flusherJob?.cancelAndJoin()
-        flusherJob = null
+        withContext(NonCancellable) {
+            flusherJob?.cancelAndJoin()
+            flusherJob = null
 
-        while (flushPending()) {
-            // Vacía todos los lotes pendientes antes de limpiar la sesión.
+            while (flushPending()) {
+                // Vacía todos los lotes pendientes antes de limpiar la sesión.
+            }
         }
     }
 

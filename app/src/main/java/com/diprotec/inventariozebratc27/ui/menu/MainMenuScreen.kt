@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.PlaylistAddCheckCircle
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.SettingsInputAntenna
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -72,6 +73,7 @@ fun MainMenuScreen(
     onHistorialEnvios: () -> Unit,
     onConsumoDatos: () -> Unit,
     onBuscarRfid: () -> Unit,
+    onConfiguracionRfid: () -> Unit,
     onAcercaDe: () -> Unit,
     onSalir: () -> Unit,
     viewModel: MainMenuViewModel = hiltViewModel()
@@ -227,11 +229,9 @@ fun MainMenuScreen(
                         verticalAlignment = Alignment.Top
                     ) {
                         InventoryMenuButton(
-                            text = "Salir",
-                            icon = Icons.Default.Logout,
-                            onClick = {
-                                showLogoutDialog = true
-                            },
+                            text = "Configuración RFID",
+                            icon = Icons.Default.SettingsInputAntenna,
+                            onClick = onConfiguracionRfid,
                             modifier = Modifier.weight(1f)
                         )
 
@@ -245,6 +245,23 @@ fun MainMenuScreen(
                         } else {
                             Spacer(modifier = Modifier.weight(1f))
                         }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        InventoryMenuButton(
+                            text = "Salir",
+                            icon = Icons.Default.Logout,
+                            onClick = {
+                                showLogoutDialog = true
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }

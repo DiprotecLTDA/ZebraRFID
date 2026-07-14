@@ -2,6 +2,8 @@ package com.diprotec.inventariozebratc27.rfid
 
 import android.content.Context
 import android.util.Log
+import com.diprotec.inventariozebratc27.core.config.SettingsManager
+import com.zebra.rfid.api3.BEEPER_VOLUME
 import com.zebra.rfid.api3.ENUM_TRANSPORT
 import com.zebra.rfid.api3.DYNAMIC_POWER_OPTIMIZATION
 import com.zebra.rfid.api3.InvalidUsageException
@@ -26,14 +28,14 @@ import kotlinx.coroutines.withContext
 
 @Singleton
 class ZebraRfidManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val settings: SettingsManager
 ) {
 
     companion object {
         private const val TAG = "ZebraRfidManager"
         private const val TAG_READS_BUFFER = 16384
         private const val TAG_POPULATION = 30
-        private const val LOCATIONING_POWER_DIVISOR = 2
         private const val READ_TAGS_BATCH_SIZE = 100
         private const val VERIFY_STEP_DELAY_MS = 200L
         private const val RECONNECT_DELAY_MS = 500L
@@ -292,6 +294,33 @@ class ZebraRfidManager @Inject constructor(
         }
     }
 
+    /**
+     * Convierte el porcentaje configurado (0-100) al índice de potencia soportado
+     * por el lector conectado. Se guarda porcentaje —y no índice— para que el ajuste
+     * no dependa del modelo de lector ni de tenerlo conectado al configurarlo.
+     */
+    private fun powerIndexForPercent(
+        powerPercent: Int,
+        lastIndex: Int
+    ): Int {
+        if (lastIndex <= 0) return 0
+
+        val safePercent = powerPercent.coerceIn(0, 100)
+
+        return (lastIndex * safePercent / 100).coerceIn(0, lastIndex)
+    }
+
+    private fun beeperVolumeOf(
+        volume: RfidBeeperVolume
+    ): BEEPER_VOLUME {
+        return when (volume) {
+            RfidBeeperVolume.HIGH -> BEEPER_VOLUME.HIGH_BEEP
+            RfidBeeperVolume.MEDIUM -> BEEPER_VOLUME.MEDIUM_BEEP
+            RfidBeeperVolume.LOW -> BEEPER_VOLUME.LOW_BEEP
+            RfidBeeperVolume.QUIET -> BEEPER_VOLUME.QUIET_BEEP
+        }
+    }
+
     private fun applyReadConfiguration(forLocationing: Boolean = false) {
         val currentReader = reader ?: return
 
@@ -305,29 +334,47 @@ class ZebraRfidManager @Inject constructor(
                 "El lector no reportó niveles de potencia RF"
             }
 
-            val transmitPowerIndex = if (forLocationing) {
-                powerLevels.size / LOCATIONING_POWER_DIVISOR
+            val powerPercent = if (forLocationing) {
+                settings.rfidPowerLocatePercent.value
             } else {
-                powerLevels.lastIndex
+                settings.rfidPowerInventoryPercent.value
             }
+
+            val transmitPowerIndex = powerIndexForPercent(
+                powerPercent = powerPercent,
+                lastIndex = powerLevels.lastIndex
+            )
+
             val antennaConfig = currentReader.Config.Antennas
                 .getAntennaRfConfig(1)
 
             antennaConfig.setTransmitPowerIndex(transmitPowerIndex)
             currentReader.Config.Antennas
                 .setAntennaRfConfig(1, antennaConfig)
-        }.onSuccess {
+
+            transmitPowerIndex
+        }.onSuccess { index ->
             if (forLocationing) {
-                Log.d(TAG, "Potencia RF moderada configurada para localización")
+                Log.d(TAG, "Potencia RF de localización configurada (índice=$index)")
             } else {
-                Log.d(TAG, "Potencia RF configurada al máximo soportado")
+                Log.d(TAG, "Potencia RF de inventario configurada (índice=$index)")
             }
         }.onFailure {
             if (forLocationing) {
                 Log.w(TAG, "No se pudo configurar la potencia RF para localización", it)
             } else {
-                Log.w(TAG, "No se pudo configurar la potencia RF máxima", it)
+                Log.w(TAG, "No se pudo configurar la potencia RF de inventario", it)
             }
+        }
+
+        runCatching {
+            currentReader.Config.setBeeperVolume(
+                beeperVolumeOf(settings.rfidBeeperVolume.value)
+            )
+        }.onSuccess {
+            Log.d(TAG, "Volumen del beeper configurado: ${settings.rfidBeeperVolume.value.name}")
+        }.onFailure {
+            Log.w(TAG, "No se pudo configurar el volumen del beeper", it)
         }
 
         runCatching {
