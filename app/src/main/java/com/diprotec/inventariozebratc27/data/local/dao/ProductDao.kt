@@ -37,6 +37,27 @@ interface ProductDao {
     )
     suspend fun findByCodigo(codigo: String): ProductEntity?
 
+    /**
+     * Resuelve varios códigos de una sola vez, para la captura RFID masiva: hacer una
+     * consulta por etiqueta multiplicaría las llamadas a Room en la ruta caliente.
+     *
+     * Usa COLLATE NOCASE porque los candidatos derivados de un EPC vienen normalizados en
+     * mayúsculas y el catálogo puede tener los códigos en otra capitalización (la búsqueda
+     * de localización ya compara así).
+     *
+     * OJO: la lista se expande dos veces, así que consume el doble de parámetros. Hay que
+     * trocearla para no superar el límite de SQLite (999 en Android 10).
+     */
+    @Query(
+        """
+        SELECT *
+        FROM productos
+        WHERE codigo COLLATE NOCASE IN (:codigos)
+           OR codigoSecundario COLLATE NOCASE IN (:codigos)
+        """
+    )
+    suspend fun findByCodigos(codigos: List<String>): List<ProductEntity>
+
     @Query(
         """
         SELECT *

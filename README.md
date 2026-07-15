@@ -164,7 +164,20 @@ Al abrir, `StartupGateScreen` verifica el estado del dispositivo:
 1. **En memoria (por sesión):** `seenEpcs` en `InventoryRfidViewModel` descarta en O(1) las relecturas continuas de una misma etiqueta **sin consultar la base de datos**. Se limpia al cargar/detener/finalizar/salir del inventario.
 2. **Persistente (BD):** `InventoryRepository.registerRfidInventoryItem` calcula una clave GS1 única (para SGTIN-96 incluye GTIN + serial, de modo que cada etiqueta física es distinta) y consulta un índice `inventoryId + rfidGs1Key`; si ya existe, la marca como duplicada en lugar de insertarla.
 
-**Robustez ante volumen excesivo:** para no perder etiquetas cuando el lector reporta muchísimas lecturas, la captura RFID **persiste por lotes**: los EPC nuevos se encolan y se vacían en micro-lotes (~150 ms, hasta 500 por lote) dentro de **una sola transacción** (`registerRfidInventoryItems` + `AppDatabase.withTransaction`), lo que amortiza el `fsync` y sube el throughput del consumidor. El `SharedFlow` de lecturas usa un buffer amplio (16384) con `DROP_OLDEST` para absorber ráfagas sin agotar memoria. El lote pendiente se **vacía por completo antes de cerrar** la sesión (detener/finalizar/salir) y, si un lote falla, sus EPC vuelven a habilitarse para recaptura. El resultado del inventario es idéntico al de carga normal.
+**Robustez ante volumen excesivo:** para no perder etiquetas cuando el lector reporta muchísimas lecturas, la captura RFID **persiste por lotes**: los EPC nuevos se encolan y se vacían en micro-lotes (~150 ms, hasta 500 por lote) dentro de **una sola transacción** (`registerRfidInventoryItems` + `AppDatabase.withTransaction`). El `SharedFlow` de lecturas usa un buffer amplio (16384) con `DROP_OLDEST` para absorber ráfagas sin agotar memoria. El lote pendiente se **vacía por completo antes de cerrar** la sesión (detener/finalizar/salir) y, si un lote falla, sus EPC vuelven a habilitarse para recaptura. El resultado del inventario es idéntico al de carga normal.
+
+Cada lote se resuelve con **tres operaciones**, no tres por etiqueta: una consulta de duplicados, una de productos y un único `insertAll`. Esa es la razón del throughput de ~1.840 etiquetas/s (ver [Pruebas y rendimiento medido](#pruebas-y-rendimiento-medido)).
+
+### Resolución del producto
+
+Las etiquetas en terreno vienen con **dos codificaciones**: GS1 **SGTIN-96** (con el GTIN embebido) y el **código del producto grabado en crudo**. Por eso, de cada EPC se derivan varios **candidatos** (`core/gs1/RfidProductCodeCandidates`) —GTIN, EPC tal cual, EPC sin ceros a la izquierda, y el hex decodificado como ASCII— que es la operación inversa de la que hace la pantalla de localización al generar el EPC a buscar.
+
+La detección **replica la del inventario láser**: se busca por `codigo`/`codigoSecundario` (de forma **insensible a mayúsculas**, ya que los candidatos vienen normalizados en mayúsculas) y:
+
+- **Con coincidencia** → se guarda la descripción del producto y su `codigo` del catálogo, que es lo que el backend recibe como `ProductoCodigo`.
+- **Sin coincidencia** (o producto sin descripción) → se guarda `"Producto no registrado"` y el GTIN/EPC como traza.
+
+En ningún caso se bloquea la lectura. El deduplicado sigue basándose en la clave del EPC, nunca en el código del producto: dos etiquetas físicas del mismo artículo cuentan por separado.
 
 ---
 
@@ -277,22 +290,30 @@ con el tag `RFID_STRESS`.
 
 ### Límites medidos (Zebra TC27, 40.000 etiquetas)
 
+![Resultados de la prueba de estrés RFID](docs/rfid-stress-test.svg)
+
 | Métrica | Valor |
 |---------|-------|
-| Throughput de escritura | **~330 etiquetas/s** (~3 ms por etiqueta nueva) |
-| Coste de detectar un duplicado | ~0,6 ms (≈5× más barato que insertar) |
-| Memoria | pico de 47,7 MB (desde 4,5 MB) — sin riesgo de OOM |
-| Carga de 40.000 capturas pendientes | ~1,1 s → 80 bloques de envío |
+| Throughput de escritura | **~1.840 etiquetas/s** |
+| Tiempo de persistir 40.000 capturas | **~22 s** (80 lotes de 500) |
+| Coste de detectar un duplicado | ~0,2 ms |
+| Memoria | pico de 59,9 MB, con solo +11,8 MB de crecimiento — sin riesgo de OOM |
+| Carga de 40.000 capturas pendientes | ~1,8 s → 80 bloques de envío |
 
-**Implicación operativa:** el lector produce (~700-900 tags/s) más rápido de lo que la base
-de datos escribe (~330/s). **No se pierden lecturas** —el backlog vive en memoria, acotado y
-barato— pero el vaciado al detener puede tardar **más de un minuto** con decenas de miles de
-capturas; por eso la pantalla muestra "Procesando capturas…" y bloquea hasta terminar.
+**Implicación operativa:** a ~1.840 etiquetas/s la base de datos escribe más rápido de lo que
+el lector produce (~700-900 tags/s), así que no se acumula backlog y el vaciado al detener es
+prácticamente inmediato. El indicador "Procesando capturas…" sigue existiendo como red de
+seguridad para volúmenes extremos.
 
-> **Nota de una investigación descartada:** de los 9 índices de `inventory_items` solo 3
-> sirven a una consulta real, pero **podarlos no mejora el rendimiento** (se midió +2,6 %,
-> dentro del ruido). El coste dominante de la inserción no es el mantenimiento de índices,
-> sino el overhead por fila de Room/SQLite y la escritura WAL. Ver el CHANGELOG.
+> **Cómo se llegó aquí — dos investigaciones, una fallida:**
+>
+> 1. **Podar índices: descartado.** De los 9 índices de `inventory_items` solo 3 sirven a una
+>    consulta real, pero podarlos **no mejoró el rendimiento** (+2,6 %, dentro del ruido de
+>    una sola corrida). El mantenimiento de índices no era el cuello de botella.
+> 2. **Reducir llamadas a Room: 5,7× más rápido.** Las mediciones mostraron que el coste
+>    escalaba con el **número de llamadas** (1 llamada ≈ 0,6 ms; 3 llamadas ≈ 3 ms por
+>    etiqueta), no con el trabajo de SQLite. Pasar de 3 llamadas por etiqueta a 3 por lote de
+>    500 subió el throughput de 325 a 1.838 etiquetas/s. Ver el CHANGELOG.
 
 ## Compilación y firma
 

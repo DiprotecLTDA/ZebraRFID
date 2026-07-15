@@ -8,11 +8,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.diprotec.inventariozebratc27.core.config.SettingsManager
+import com.diprotec.inventariozebratc27.core.gs1.Gs1EpcDecoder
 import com.diprotec.inventariozebratc27.data.local.database.AppDatabase
 import com.diprotec.inventariozebratc27.data.local.entity.InventoryEntity
+import com.diprotec.inventariozebratc27.data.local.entity.ProductEntity
 import com.diprotec.inventariozebratc27.data.local.inventory.InventoryStatus
 import com.diprotec.inventariozebratc27.data.repository.InventoryRepository
 import java.io.File
+import java.math.BigInteger
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +64,33 @@ class RfidMassiveCaptureStressTest {
 
         /** Etiquetas ya insertadas que se re-envían para validar el deduplicado. */
         const val DUPLICATE_SAMPLE = 1_000
+
+        /** Tamaño del catálogo sembrado (del orden del real: ~6.000 productos). */
+        const val CATALOG_SIZE = 6_000
+
+        /** Etiquetas SGTIN-96 cuyo GTIN sí está en el catálogo. */
+        const val MATCHED_GTIN_TAGS = 20_000
+
+        /**
+         * Etiquetas con el código del producto grabado en crudo y rellenado con ceros.
+         * Son 1 por producto: en esa codificación el EPC no lleva serial, así que dos
+         * etiquetas del mismo artículo serían indistinguibles.
+         */
+        const val MATCHED_RAW_TAGS = 500
+
+        /** El resto de las etiquetas no coincide con nada: "Producto no registrado". */
+        const val UNMATCHED_TAGS = TOTAL_TAGS - MATCHED_GTIN_TAGS - MATCHED_RAW_TAGS
+
+        const val PRODUCTO_NO_REGISTRADO = "Producto no registrado"
+
+        /** Prefijo de empresa de los EPC que sí tienen producto en el catálogo. */
+        const val COMPANY_PREFIX_BASE = 100_000_000_000L
+
+        /** Prefijo de los EPC sin producto asociado. */
+        const val UNKNOWN_PREFIX_BASE = 200_000_000_000L
+
+        /** Base de los códigos crudos ("900000", "900001", …). */
+        const val RAW_CODE_BASE = 900_000
 
         const val TEST_DB = "rfid_stress_test.db"
         const val FALLBACK_DEVICE_ID = "STRESS-TEST-DEVICE"
@@ -123,6 +153,50 @@ class RfidMassiveCaptureStressTest {
                 tipoLectura = 1
             )
         )
+
+        seedCatalog()
+    }
+
+    /**
+     * Siembra un catálogo del orden del real. Los GTIN se obtienen decodificando los
+     * propios EPC de prueba con [Gs1EpcDecoder], de modo que la coincidencia esperada no
+     * depende de que el test reimplemente la codificación GS1.
+     *
+     * Los códigos se guardan en minúsculas a propósito, para verificar que la resolución
+     * es insensible a mayúsculas (los candidatos derivados de un EPC vienen en mayúsculas).
+     */
+    private suspend fun seedCatalog() {
+        val productos = ArrayList<ProductEntity>(CATALOG_SIZE + MATCHED_RAW_TAGS)
+
+        repeat(CATALOG_SIZE) { productIndex ->
+            val gtin = Gs1EpcDecoder
+                .decode(sgtinEpc(COMPANY_PREFIX_BASE + productIndex, 0L))
+                .gtin
+
+            if (!gtin.isNullOrBlank()) {
+                productos += ProductEntity(
+                    codigo = gtin,
+                    codigoSecundario = null,
+                    descripcion = "Producto GTIN $productIndex",
+                    estado = false,
+                    rutEmpresa = "76001910-0"
+                )
+            }
+        }
+
+        repeat(MATCHED_RAW_TAGS) { index ->
+            productos += ProductEntity(
+                codigo = rawCode(index).lowercase(),
+                codigoSecundario = null,
+                descripcion = "Producto RAW $index",
+                estado = false,
+                rutEmpresa = "76001910-0"
+            )
+        }
+
+        db.productoDao().replaceAll(productos)
+
+        Log.i(TAG, "Catálogo sembrado: ${productos.size} productos")
     }
 
     @After
@@ -232,6 +306,29 @@ class RfidMassiveCaptureStressTest {
             pendientes.size
         )
 
+        // ---- Verificación de la resolución de productos contra el catálogo ----
+        val noRegistrados = pendientes.count { it.description == PRODUCTO_NO_REGISTRADO }
+        val registrados = pendientes.size - noRegistrados
+
+        assertEquals(
+            "Las etiquetas con producto en el catálogo deben resolver su descripción",
+            MATCHED_GTIN_TAGS + MATCHED_RAW_TAGS,
+            registrados
+        )
+
+        assertEquals(
+            "Las etiquetas sin coincidencia deben quedar como producto no registrado",
+            UNMATCHED_TAGS,
+            noRegistrados
+        )
+
+        assertTrue(
+            "Al resolver el producto se debe guardar el código del catálogo, no el EPC",
+            pendientes
+                .filter { it.description != PRODUCTO_NO_REGISTRADO }
+                .all { it.barcode.length < 24 }
+        )
+
         val syncBlocks = pendientes.chunked(500).size
 
         val summary = Summary(
@@ -267,6 +364,7 @@ class RfidMassiveCaptureStressTest {
         Log.i(TAG, "Lote: min ${summary.minBatchMs} ms / max ${summary.maxBatchMs} ms")
         Log.i(TAG, "Heap: inicio ${fmt(summary.heapStartMb)} MB, pico ${fmt(summary.heapPeakMb)} MB")
         Log.i(TAG, "Duplicados: ${summary.duplicateSample} en ${summary.duplicateMs} ms")
+        Log.i(TAG, "Productos resueltos: $registrados | no registrados: $noRegistrados")
         Log.i(TAG, "Carga de pendientes: ${summary.rowsInDb} filas en ${summary.loadPendingMs} ms")
         Log.i(TAG, "Bloques de envío (500): ${summary.syncBlocks}")
         Log.i(TAG, "INFORME HTML: ${htmlFile.absolutePath}")
@@ -277,12 +375,50 @@ class RfidMassiveCaptureStressTest {
     // ------------------------------------------------------------------ helpers
 
     /**
-     * Genera un EPC SGTIN-96 válido y único por índice (header 0x30 + 22 hex).
-     * El índice queda en los bits bajos, que corresponden al serial, de modo que
-     * cada etiqueta produce una gs1Key distinta.
+     * Genera el EPC de cada etiqueta según el grupo al que pertenece, reproduciendo las dos
+     * codificaciones que existen en terreno:
+     *
+     * - GS1 **SGTIN-96** con el GTIN embebido (con y sin producto en el catálogo).
+     * - El **código del producto en crudo**, rellenado con ceros a 24 dígitos.
      */
     private fun epcFor(index: Int): String {
-        return "30" + String.format(Locale.US, "%022X", index.toLong())
+        return when {
+            index < MATCHED_GTIN_TAGS -> sgtinEpc(
+                companyPrefix = COMPANY_PREFIX_BASE + (index % CATALOG_SIZE),
+                serial = index.toLong()
+            )
+
+            index < MATCHED_GTIN_TAGS + MATCHED_RAW_TAGS -> rawCode(
+                index - MATCHED_GTIN_TAGS
+            ).padStart(24, '0')
+
+            else -> sgtinEpc(
+                companyPrefix = UNKNOWN_PREFIX_BASE + index,
+                serial = index.toLong()
+            )
+        }
+    }
+
+    /**
+     * Construye un EPC SGTIN-96 válido.
+     *
+     * Distribución de bits (96 en total, desde el más significativo): header 0x30 (8),
+     * filter (3), partition 0 (3), companyPrefix (40), itemReference (4) y serial (38).
+     */
+    private fun sgtinEpc(companyPrefix: Long, serial: Long): String {
+        val header = BigInteger.valueOf(0x30L).shiftLeft(88)
+        val prefix = BigInteger.valueOf(companyPrefix).shiftLeft(42)
+        val serialBits = BigInteger.valueOf(serial and 0x3F_FFFF_FFFFL)
+
+        return String.format(
+            Locale.US,
+            "%024X",
+            header.or(prefix).or(serialBits)
+        )
+    }
+
+    private fun rawCode(index: Int): String {
+        return (RAW_CODE_BASE + index).toString()
     }
 
     private fun usedHeapMb(): Double {

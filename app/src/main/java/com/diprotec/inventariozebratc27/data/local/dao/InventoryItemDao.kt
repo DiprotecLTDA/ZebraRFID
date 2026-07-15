@@ -14,6 +14,32 @@ interface InventoryItemDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: InventoryItemEntity)
 
+    /**
+     * Inserta el lote completo reutilizando un único statement preparado, en vez de cruzar
+     * la frontera suspend una vez por captura.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<InventoryItemEntity>)
+
+    /**
+     * Devuelve, de entre las claves consultadas, las que ya están registradas en el
+     * inventario. Permite deduplicar un lote entero con una sola consulta en lugar de un
+     * COUNT por etiqueta. Se apoya en el índice (inventoryId, rfidGs1Key).
+     */
+    @Query(
+        """
+        SELECT rfidGs1Key
+        FROM inventory_items
+        WHERE inventoryId = :inventoryId
+        AND rfidDuplicado = 0
+        AND rfidGs1Key IN (:rfidGs1Keys)
+        """
+    )
+    suspend fun findExistingRfidGs1Keys(
+        inventoryId: Long,
+        rfidGs1Keys: List<String>
+    ): List<String>
+
     @Query(
         """
         SELECT * 

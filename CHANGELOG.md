@@ -7,6 +7,51 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+### Corregido — Resolución de productos en la captura RFID (2026-07-15)
+- **Las etiquetas RFID no resolvían su producto contra el catálogo.** La captura consultaba
+  Room usando el **GTIN** (si el EPC era SGTIN-96) o el **EPC en hexadecimal** en cualquier
+  otro caso. Como en terreno conviven ambas codificaciones —GS1 SGTIN-96 y el código del
+  producto grabado en crudo—, las del segundo grupo **nunca coincidían** y caían siempre en
+  "Producto no registrado". Y ese valor no es solo la etiqueta en pantalla: es lo que se
+  envía al backend como `ProductoCodigo`, así que se reportaban códigos desconocidos.
+- **Ahora se derivan candidatos del EPC** (nuevo `core/gs1/RfidProductCodeCandidates`), que
+  es la operación inversa de la que ya hacía la pantalla de localización: GTIN embebido, EPC
+  tal cual, EPC sin ceros a la izquierda, y el hex decodificado como ASCII (con y sin
+  relleno). Se consulta el catálogo con todos ellos.
+- **La detección replica la del inventario láser:** se busca por `codigo`/`codigoSecundario`
+  y, si no hay coincidencia —o el producto no tiene descripción—, la captura se registra
+  igual con "Producto no registrado". Nunca se bloquea la lectura.
+- **Al resolver el producto se guarda el `codigo` del catálogo** (que es lo que recibe el
+  backend); si no resuelve, se conserva el GTIN/EPC como traza.
+- La comparación es **insensible a mayúsculas** (`COLLATE NOCASE`), porque los candidatos
+  derivados de un EPC vienen normalizados en mayúsculas y el catálogo puede tener otra
+  capitalización. La localización ya comparaba así; ahora la captura es coherente.
+- El deduplicado **sigue basándose en la clave del EPC**, nunca en el código del producto:
+  dos etiquetas físicas del mismo artículo deben contar por separado.
+
+### Rendimiento — Resolución por lote: 5,7× más rápido (2026-07-15)
+- La ruta de captura RFID pasó de **3 llamadas a Room por etiqueta** (contar duplicado,
+  buscar producto, insertar) a **3 por lote de 500**: una consulta de duplicados, una de
+  productos (troceada) y un único `insertAll`. Las mediciones mostraban que el coste lo
+  dominaba el **número de llamadas**, no el trabajo de SQLite (1 llamada ≈ 0,6 ms;
+  3 llamadas ≈ 3 ms por etiqueta).
+- **Resultado medido con 40.000 etiquetas en TC27:**
+
+  | Métrica | Antes | Después | Mejora |
+  |---|---|---|---|
+  | Throughput | 325 etiquetas/s | **1.838 etiquetas/s** | **5,7×** |
+  | Tiempo total | 123,2 s | **21,8 s** | 5,7× |
+  | Lote más lento | 2.932 ms | **369 ms** | 7,9× |
+  | Lote más rápido | 1.110 ms | **155 ms** | 7,2× |
+  | 1.000 duplicados | 571 ms | **214 ms** | 2,7× |
+  | Crecimiento de heap | +43,2 MB | **+11,8 MB** | 3,7× |
+
+- Como efecto secundario, **el vaciado al detener deja de ser un problema**: a 1.838
+  etiquetas/s el lector ya no produce más rápido de lo que la base de datos escribe.
+- Se añadieron `InventoryItemDao.insertAll` y `findExistingRfidGs1Keys`, y
+  `ProductDao.findByCodigos`. Los parámetros se trocean para respetar el límite de 999 de
+  SQLite en Android 10 (la consulta de productos expande la lista dos veces).
+
 ### Añadido — Prueba de estrés de captura RFID masiva (2026-07-15)
 - Nuevo test instrumentado `RfidMassiveCaptureStressTest` que simula **40.000 etiquetas
   únicas** por el mismo camino que usa la app (deduplicación en memoria + persistencia por

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" width="760" height="430" role="img" aria-labelledby="titulo desc">
+  <title id="titulo">Prueba de estrés RFID: 40.000 etiquetas, antes y después de la resolución por lote</title>
+  <desc id="desc">El throughput pasó de 325 a 1.838 etiquetas por segundo (5,7 veces más rápido) al reducir las llamadas a Room de 3 por etiqueta a 3 por lote de 500.</desc>
+
+  <rect x="0" y="0" width="760" height="430" fill="#ffffff"/>
+
+  <text x="24" y="34" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="17" font-weight="500" fill="#1F2937">Prueba de estrés — captura RFID de 40.000 etiquetas</text>
+  <text x="24" y="54" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="12" fill="#9AA0A6">Medido en Zebra TC27 · lotes de 500 en una transacción</text>
+
+  <rect x="24" y="70" width="168" height="62" rx="8" fill="#F1EFE8"/>
+  <text x="38" y="92" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Throughput</text>
+  <text x="38" y="118" font-family="system-ui, sans-serif" font-size="20" font-weight="500" fill="#1F2937">325 → 1.838/s</text>
+
+  <rect x="204" y="70" width="168" height="62" rx="8" fill="#F1EFE8"/>
+  <text x="218" y="92" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Tiempo total</text>
+  <text x="218" y="118" font-family="system-ui, sans-serif" font-size="20" font-weight="500" fill="#1F2937">123 s → 22 s</text>
+
+  <rect x="384" y="70" width="168" height="62" rx="8" fill="#F1EFE8"/>
+  <text x="398" y="92" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Mejora</text>
+  <text x="398" y="118" font-family="system-ui, sans-serif" font-size="20" font-weight="500" fill="#0F6E56">5,7×</text>
+
+  <rect x="564" y="70" width="172" height="62" rx="8" fill="#F1EFE8"/>
+  <text x="578" y="92" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Heap pico</text>
+  <text x="578" y="118" font-family="system-ui, sans-serif" font-size="20" font-weight="500" fill="#1F2937">59,9 MB</text>
+
+  <rect x="24" y="156" width="11" height="11" rx="2" fill="#898781"/>
+  <text x="42" y="166" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Antes — 3 llamadas a Room por etiqueta</text>
+  <rect x="284" y="156" width="11" height="11" rx="2" fill="#2a78d6"/>
+  <text x="302" y="166" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Después — 3 por lote de 500</text>
+
+  <line x1="150" y1="196" x2="736" y2="196" stroke="#E2E5E7" stroke-width="1"/>
+  <line x1="150" y1="252" x2="736" y2="252" stroke="#E2E5E7" stroke-width="1"/>
+  <line x1="150" y1="308" x2="736" y2="308" stroke="#E2E5E7" stroke-width="1"/>
+  <line x1="150" y1="364" x2="736" y2="364" stroke="#E2E5E7" stroke-width="1"/>
+
+  <text x="140" y="200" text-anchor="end" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Tiempo total</text>
+  <rect x="150" y="182" width="560" height="12" rx="3" fill="#898781"/>
+  <text x="716" y="192" font-family="system-ui, sans-serif" font-size="10" fill="#5F5E5A">123,2 s</text>
+  <rect x="150" y="198" width="99" height="12" rx="3" fill="#2a78d6"/>
+  <text x="255" y="208" font-family="system-ui, sans-serif" font-size="10" fill="#185FA5">21,8 s</text>
+
+  <text x="140" y="256" text-anchor="end" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Lote más lento</text>
+  <rect x="150" y="238" width="560" height="12" rx="3" fill="#898781"/>
+  <text x="716" y="248" font-family="system-ui, sans-serif" font-size="10" fill="#5F5E5A">2.932 ms</text>
+  <rect x="150" y="254" width="70" height="12" rx="3" fill="#2a78d6"/>
+  <text x="226" y="264" font-family="system-ui, sans-serif" font-size="10" fill="#185FA5">369 ms</text>
+
+  <text x="140" y="312" text-anchor="end" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">Lote más rápido</text>
+  <rect x="150" y="294" width="560" height="12" rx="3" fill="#898781"/>
+  <text x="716" y="304" font-family="system-ui, sans-serif" font-size="10" fill="#5F5E5A">1.110 ms</text>
+  <rect x="150" y="310" width="78" height="12" rx="3" fill="#2a78d6"/>
+  <text x="234" y="320" font-family="system-ui, sans-serif" font-size="10" fill="#185FA5">155 ms</text>
+
+  <text x="140" y="368" text-anchor="end" font-family="system-ui, sans-serif" font-size="11" fill="#5F5E5A">1.000 duplicados</text>
+  <rect x="150" y="350" width="560" height="12" rx="3" fill="#898781"/>
+  <text x="716" y="360" font-family="system-ui, sans-serif" font-size="10" fill="#5F5E5A">571 ms</text>
+  <rect x="150" y="366" width="210" height="12" rx="3" fill="#2a78d6"/>
+  <text x="366" y="376" font-family="system-ui, sans-serif" font-size="10" fill="#185FA5">214 ms</text>
+
+  <text x="24" y="410" font-family="system-ui, sans-serif" font-size="11" fill="#9AA0A6">Barras normalizadas al valor «antes» de cada métrica. Resolución de productos verificada: 20.500 resueltos y 19.500 no registrados.</text>
+</svg>
