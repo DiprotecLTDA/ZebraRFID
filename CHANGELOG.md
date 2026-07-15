@@ -7,6 +7,47 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+### Añadido — Prueba de estrés de captura RFID masiva (2026-07-15)
+- Nuevo test instrumentado `RfidMassiveCaptureStressTest` que simula **40.000 etiquetas
+  únicas** por el mismo camino que usa la app (deduplicación en memoria + persistencia por
+  lotes transaccionales de 500), **sin necesitar etiquetas físicas ni el lector**: genera
+  EPCs SGTIN-96 válidos y únicos por índice. Mide throughput, latencia por lote y memoria;
+  verifica que el deduplicado detecte los re-envíos y que no se inserten filas duplicadas;
+  y mide la carga de capturas pendientes que hace el worker de sincronización.
+- Al terminar escribe un informe HTML autocontenido con gráficos SVG y un CSV con los datos
+  crudos en `Android/data/<package>/files/`. El resumen sale por logcat con el tag
+  `RFID_STRESS`.
+- Usa una base de datos separada (`rfid_stress_test.db`, borrada al terminar) y no
+  sobrescribe el `deviceId` si el equipo ya está configurado: **no toca datos reales**.
+
+### Medición — Resultados con 40.000 etiquetas (2026-07-15)
+Medido en Zebra TC27:
+- **Throughput: ~325-333 etiquetas/s** (~3 ms por etiqueta nueva). Es el techo real de
+  escritura del dispositivo.
+- **Memoria: pico de 47,7 MB** partiendo de 4,5 MB. Sin riesgo de OOM a este volumen.
+- **Deduplicado: 0,57 ms por etiqueta**, ~5 veces más barato que insertar. Confirma que el
+  caché en memoria `seenEpcs` es lo que hace viable el reporte continuo del lector.
+- **Carga de 40.000 pendientes: ~1,1 s** → 80 bloques de envío de 500.
+- **Consecuencia operativa:** el lector produce (~700-900 tags/s) más rápido de lo que la BD
+  escribe (~330/s). No se pierden lecturas (el backlog vive en memoria, acotado y barato),
+  pero **el vaciado al detener puede tardar más de un minuto con decenas de miles de
+  capturas**. Esto valida la necesidad del indicador "Procesando capturas…".
+
+### Investigado y descartado — Poda de índices de `inventory_items` (2026-07-15)
+- **Hipótesis:** de los 9 índices de `inventory_items` solo 3 sirven a una consulta real
+  (verificado contra todo `InventoryItemDao`, que es el único lugar que consulta la tabla).
+  Se supuso que mantener 6 árboles B muertos en cada inserción era el cuello de botella.
+- **Se probó:** poda a 3 índices + migración 30→31 con `DROP INDEX`.
+- **Resultado: la hipótesis era incorrecta.** La ganancia medida fue de solo **+2,6 %**
+  (325 → 333 etiquetas/s), con signos mezclados entre métricas (el deduplicado salió 10,3 %
+  más lento y la carga de pendientes 2,7 % más lenta), lo que indica **ruido de una sola
+  corrida** y no una mejora real.
+- **Decisión: revertido.** Una migración de esquema en producción no se justifica sin una
+  mejora clara. El coste dominante de la inserción **no es** el mantenimiento de índices,
+  sino el overhead por fila de Room/SQLite y la escritura WAL.
+- Se deja documentado para no repetir la investigación. Los 6 índices sin uso siguen ahí:
+  son peso muerto en disco, pero no afectan al rendimiento de forma medible.
+
 ### Añadido — Configuración RFID ajustable (2026-07-14)
 - **Nueva pantalla "Configuración RFID"**, accesible desde el menú principal y **sin
   restricción de perfil** (ruta `rfid_settings`, `ui/rfid/settings/`).

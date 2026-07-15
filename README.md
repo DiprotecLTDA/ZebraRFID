@@ -19,8 +19,9 @@ Desarrollada por **Diprotec LTDA**.
 9. [Sincronización en segundo plano](#sincronización-en-segundo-plano)
 10. [Sistema de diseño](#sistema-de-diseño)
 11. [Permisos](#permisos)
-12. [Compilación y firma](#compilación-y-firma)
-13. [Estructura del proyecto](#estructura-del-proyecto)
+12. [Pruebas y rendimiento medido](#pruebas-y-rendimiento-medido)
+13. [Compilación y firma](#compilación-y-firma)
+14. [Estructura del proyecto](#estructura-del-proyecto)
 
 ---
 
@@ -255,6 +256,43 @@ Declarados en `AndroidManifest.xml`:
 - `queries` para EMDK service y el content provider de Zebra; `FileProvider` para instalar el APK descargado.
 
 ---
+
+## Pruebas y rendimiento medido
+
+### Prueba de estrés de captura RFID
+
+`app/src/androidTest/.../RfidMassiveCaptureStressTest.kt` simula **40.000 etiquetas únicas**
+por el mismo camino que usa la app (deduplicación en memoria + persistencia por lotes
+transaccionales). **No requiere etiquetas físicas ni el lector**: genera EPCs SGTIN-96
+válidos y únicos. Usa una base de datos separada y no toca datos reales.
+
+```bash
+./gradlew connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.diprotec.inventariozebratc27.RfidMassiveCaptureStressTest
+```
+
+Genera un informe HTML con gráficos y un CSV en
+`/sdcard/Android/data/com.diprotec.inventariozebratc27/files/`; el resumen sale por logcat
+con el tag `RFID_STRESS`.
+
+### Límites medidos (Zebra TC27, 40.000 etiquetas)
+
+| Métrica | Valor |
+|---------|-------|
+| Throughput de escritura | **~330 etiquetas/s** (~3 ms por etiqueta nueva) |
+| Coste de detectar un duplicado | ~0,6 ms (≈5× más barato que insertar) |
+| Memoria | pico de 47,7 MB (desde 4,5 MB) — sin riesgo de OOM |
+| Carga de 40.000 capturas pendientes | ~1,1 s → 80 bloques de envío |
+
+**Implicación operativa:** el lector produce (~700-900 tags/s) más rápido de lo que la base
+de datos escribe (~330/s). **No se pierden lecturas** —el backlog vive en memoria, acotado y
+barato— pero el vaciado al detener puede tardar **más de un minuto** con decenas de miles de
+capturas; por eso la pantalla muestra "Procesando capturas…" y bloquea hasta terminar.
+
+> **Nota de una investigación descartada:** de los 9 índices de `inventory_items` solo 3
+> sirven a una consulta real, pero **podarlos no mejora el rendimiento** (se midió +2,6 %,
+> dentro del ruido). El coste dominante de la inserción no es el mantenimiento de índices,
+> sino el overhead por fila de Room/SQLite y la escritura WAL. Ver el CHANGELOG.
 
 ## Compilación y firma
 
